@@ -29,7 +29,13 @@ console.log(`🌐 서버: ${HOST}:${PORT}`);
 // Express 앱 및 HTTP 서버 설정
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+
+// WebSocket 서버 설정 (render.com 호환)
+const wss = new WebSocket.Server({ 
+    server,
+    perMessageDeflate: false,
+    clientTracking: true
+});
 
 // 미들웨어 설정
 app.use(express.json());
@@ -342,31 +348,53 @@ function generateSessionCode() {
 function loadGameMetadata() {
     const gamesDir = path.join(__dirname, 'games');
     
+    console.log(`📁 게임 디렉터리 확인: ${gamesDir}`);
+    
     if (!fs.existsSync(gamesDir)) {
         console.log('📁 games 디렉터리 생성 중...');
         fs.mkdirSync(gamesDir, { recursive: true });
         return;
     }
     
-    const gameDirectories = fs.readdirSync(gamesDir);
-    let loadedCount = 0;
-    
-    gameDirectories.forEach(gameDir => {
-        const gameJsonPath = path.join(gamesDir, gameDir, 'game.json');
+    try {
+        const gameDirectories = fs.readdirSync(gamesDir);
+        let loadedCount = 0;
         
-        if (fs.existsSync(gameJsonPath)) {
-            try {
-                const gameMetadata = JSON.parse(fs.readFileSync(gameJsonPath, 'utf8'));
-                games.set(gameDir, gameMetadata);
-                loadedCount++;
-                console.log(`🎮 게임 로드: ${gameDir} (${gameMetadata.name})`);
-            } catch (error) {
-                console.error(`❌ 게임 로드 실패: ${gameDir}`, error);
+        console.log(`📂 발견된 디렉터리: ${gameDirectories.join(', ')}`);
+        
+        gameDirectories.forEach(gameDir => {
+            const gameDirPath = path.join(gamesDir, gameDir);
+            const gameJsonPath = path.join(gameDirPath, 'game.json');
+            
+            console.log(`🔍 확인 중: ${gameJsonPath}`);
+            
+            if (fs.existsSync(gameJsonPath)) {
+                try {
+                    const gameMetadata = JSON.parse(fs.readFileSync(gameJsonPath, 'utf8'));
+                    games.set(gameDir, gameMetadata);
+                    loadedCount++;
+                    console.log(`✅ 게임 로드: ${gameDir} (${gameMetadata.name})`);
+                } catch (error) {
+                    console.error(`❌ 게임 JSON 파싱 실패: ${gameDir}`, error);
+                }
+            } else {
+                console.log(`⚠️ game.json 없음: ${gameDir}`);
             }
+        });
+        
+        console.log(`📚 총 ${loadedCount}개 게임 로드 완료`);
+        
+        // 로드된 게임 목록 출력
+        if (games.size > 0) {
+            console.log('🎮 로드된 게임들:');
+            games.forEach((metadata, gameId) => {
+                console.log(`  - ${gameId}: ${metadata.name}`);
+            });
         }
-    });
-    
-    console.log(`📚 총 ${loadedCount}개 게임 로드 완료`);
+        
+    } catch (error) {
+        console.error('❌ 게임 메타데이터 로딩 중 오류:', error);
+    }
 }
 
 // ========== WebSocket 연결 처리 ==========
@@ -377,9 +405,12 @@ function loadGameMetadata() {
 wss.on('connection', (ws, req) => {
     const clientId = uuidv4();
     const client = new Client(clientId, ws);
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     
     clients.set(clientId, client);
     serverStats.totalConnections++;
+    
+    console.log(`🔗 새 WebSocket 연결: ${clientId} from ${clientIP}`);
     
     // 연결 확인 메시지
     client.send({
@@ -1132,15 +1163,27 @@ app.get('/admin', (req, res) => {
 
 // 게임 API
 app.get('/api/games', (req, res) => {
-    const gameList = Array.from(games.entries()).map(([gameId, metadata]) => ({
-        gameId,
-        ...metadata
-    }));
-    
-    res.json({
-        success: true,
-        games: gameList
-    });
+    try {
+        const gameList = Array.from(games.entries()).map(([gameId, metadata]) => ({
+            gameId,
+            ...metadata
+        }));
+        
+        console.log(`📚 게임 목록 요청: ${gameList.length}개 게임 반환`);
+        
+        res.json({
+            success: true,
+            games: gameList,
+            count: gameList.length
+        });
+    } catch (error) {
+        console.error('❌ 게임 목록 API 오류:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load games',
+            games: []
+        });
+    }
 });
 
 // 서버 상태 API
@@ -1154,6 +1197,22 @@ app.get('/api/status', (req, res) => {
             activeRooms: rooms.size,
             connectedClients: clients.size,
             gamesLoaded: games.size
+        }
+    });
+});
+
+// 디버그 API 
+app.get('/api/debug', (req, res) => {
+    res.json({
+        success: true,
+        debug: {
+            gamesDir: path.join(__dirname, 'games'),
+            gamesExist: fs.existsSync(path.join(__dirname, 'games')),
+            loadedGames: Array.from(games.keys()),
+            totalGames: games.size,
+            environment: NODE_ENV,
+            port: PORT,
+            host: HOST
         }
     });
 });
