@@ -687,6 +687,16 @@
                 this.sessionId = message.sessionId;
                 this.gameMode = message.gameMode;
                 
+                // 세션 정보를 로컬 스토리지에 저장 (게임에서 자동 연결용)
+                const sessionData = {
+                    sessionCode: message.sessionCode,
+                    sessionId: message.sessionId,
+                    gameMode: message.gameMode,
+                    createdAt: Date.now()
+                };
+                localStorage.setItem('sgh_session', JSON.stringify(sessionData));
+                console.log('💾 세션 정보 저장됨:', sessionData);
+                
                 this.displaySessionCode(message.sessionCode);
                 this.generateQRCode(message.sessionCode);
                 this.updateUI();

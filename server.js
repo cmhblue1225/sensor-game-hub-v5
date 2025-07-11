@@ -90,6 +90,7 @@ const MESSAGE_TYPES = {
     JOIN_SESSION: 'join_session',
     SESSION_JOINED: 'session_joined',
     SESSION_MATCHED: 'session_matched',
+    JOIN_AS_GAME_CLIENT: 'join_as_game_client',
     
     // 센서 데이터
     SENSOR_DATA: 'sensor_data',
@@ -470,6 +471,9 @@ function handleMessage(clientId, message) {
             case MESSAGE_TYPES.JOIN_SESSION:
                 handleJoinSession(clientId, message);
                 break;
+            case MESSAGE_TYPES.JOIN_AS_GAME_CLIENT:
+                handleJoinAsGameClient(clientId, message);
+                break;
             case MESSAGE_TYPES.SENSOR_DATA:
                 handleSensorData(clientId, message);
                 break;
@@ -613,6 +617,58 @@ function handleJoinSession(clientId, message) {
         client.send({
             type: MESSAGE_TYPES.ERROR,
             error: '세션 참가 실패'
+        });
+    }
+}
+
+/**
+ * 게임 클라이언트로 기존 세션 참가
+ */
+function handleJoinAsGameClient(clientId, message) {
+    const client = clients.get(clientId);
+    if (!client) return;
+    
+    try {
+        const { sessionCode, gameId, gameType } = message;
+        
+        // 세션 확인
+        const session = sessions.get(sessionCode);
+        if (!session) {
+            client.send({
+                type: MESSAGE_TYPES.ERROR,
+                error: '유효하지 않은 세션 코드'
+            });
+            return;
+        }
+        
+        // 클라이언트를 게임 클라이언트로 설정
+        client.type = CLIENT_TYPES.PC;
+        client.sessionId = session.sessionId;
+        client.gameId = gameId;
+        client.gameType = gameType;
+        
+        // 세션에 게임 클라이언트 추가 (기존 PC 클라이언트 교체)
+        session.pcClientId = clientId;
+        
+        console.log(`🎮 게임 클라이언트 연결: ${sessionCode} (게임: ${gameId})`);
+        
+        // 기존 센서가 연결되어 있다면 즉시 매칭 알림
+        if (session.sensorClients.size > 0) {
+            client.send({
+                type: MESSAGE_TYPES.SESSION_MATCHED,
+                sessionCode: sessionCode,
+                sensorId: Array.from(session.sensorClients.keys())[0],
+                sensorCount: session.sensorClients.size
+            });
+            
+            console.log(`✅ 기존 센서와 즉시 매칭: ${sessionCode}`);
+        }
+        
+    } catch (error) {
+        console.error(`❌ 게임 클라이언트 연결 실패 (${clientId}):`, error);
+        client.send({
+            type: MESSAGE_TYPES.ERROR,
+            error: '게임 클라이언트 연결 실패'
         });
     }
 }

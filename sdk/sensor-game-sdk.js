@@ -118,6 +118,9 @@ class SensorGameSDK {
             // WebSocket 연결
             await this.connect();
             
+            // 기존 세션 정보 확인 및 자동 연결
+            await this.checkExistingSession();
+            
             // 게임별 초기화 호출
             if (typeof this.onInit === 'function') {
                 await this.onInit();
@@ -201,6 +204,65 @@ class SensorGameSDK {
     }
     
     /**
+     * 기존 세션 확인 및 자동 연결
+     */
+    async checkExistingSession() {
+        try {
+            // 로컬 스토리지에서 세션 정보 확인
+            const sessionData = this.getStoredSessionData();
+            
+            if (sessionData && sessionData.sessionCode) {
+                console.log('🔍 기존 세션 발견:', sessionData.sessionCode);
+                
+                // 기존 세션에 게임 클라이언트로 참가
+                this.send({
+                    type: 'join_as_game_client',
+                    sessionCode: sessionData.sessionCode,
+                    gameId: this.config.gameId,
+                    gameType: this.config.gameType
+                });
+                
+                // 세션 정보 복원
+                this.state.sessionCode = sessionData.sessionCode;
+                this.state.sessionId = sessionData.sessionId;
+                
+                return true;
+            } else {
+                console.log('ℹ️ 기존 세션 없음, 새 세션 필요');
+                return false;
+            }
+        } catch (error) {
+            console.warn('⚠️ 기존 세션 확인 실패:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * 저장된 세션 데이터 가져오기
+     */
+    getStoredSessionData() {
+        try {
+            const stored = localStorage.getItem('sgh_session');
+            return stored ? JSON.parse(stored) : null;
+        } catch (error) {
+            console.warn('⚠️ 세션 데이터 파싱 실패:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * 세션 데이터 저장
+     */
+    storeSessionData(sessionData) {
+        try {
+            localStorage.setItem('sgh_session', JSON.stringify(sessionData));
+            console.log('💾 세션 데이터 저장됨:', sessionData.sessionCode);
+        } catch (error) {
+            console.warn('⚠️ 세션 데이터 저장 실패:', error);
+        }
+    }
+    
+    /**
      * 서버 메시지 처리
      */
     handleServerMessage(message) {
@@ -272,6 +334,17 @@ class SensorGameSDK {
      */
     handleSessionMatched(message) {
         this.state.sensorConnected = true;
+        
+        // 세션 정보 업데이트 (기존 세션에 게임 클라이언트로 연결된 경우)
+        if (message.sessionCode && !this.state.sessionCode) {
+            this.state.sessionCode = message.sessionCode;
+            this.storeSessionData({
+                sessionCode: message.sessionCode,
+                sessionId: this.state.sessionId,
+                gameType: this.config.gameType,
+                createdAt: Date.now()
+            });
+        }
         
         console.log('📱 센서 연결됨');
         this.emit('sensor_connected', {
