@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Sensor Game Hub v5</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* 배경 애니메이션 */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            animation: backgroundFloat 20s ease-in-out infinite;
+        }
+        
+        @keyframes backgroundFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        /* 메인 컨테이너 */
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+        }
+        
+        /* 헤더 */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3)); }
+            to { filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.5)); }
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .description {
+            color: var(--text-muted);
+            max-width: 600px;
+            line-height: 1.6;
+        }
+        
+        /* 기기 선택 카드 */
+        .device-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 800px;
+            width: 100%;
+            margin-bottom: 3rem;
+        }
+        
+        .device-card {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        .device-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .device-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .device-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
+        }
+        
+        .device-card:hover::before {
+            left: 100%;
+        }
+        
+        .device-card.pc {
+            border-color: var(--primary);
+        }
+        
+        .device-card.mobile {
+            border-color: var(--success);
+        }
+        
+        .device-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .device-card.pc .device-icon {
+            color: var(--primary);
+        }
+        
+        .device-card.mobile .device-icon {
+            color: var(--success);
+        }
+        
+        .device-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .device-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .device-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+        
+        .device-features li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .device-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .device-button {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .device-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* QR 코드 섹션 */
+        .qr-section {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInUp 1s ease-out 0.4s both;
+        }
+        
+        .qr-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .qr-container {
+            display: inline-block;
+            padding: 1rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1rem;
+        }
+        
+        .qr-code {
+            width: 150px;
+            height: 150px;
+        }
+        
+        .qr-url {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            word-break: break-all;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        
+        /* 푸터 */
+        .footer {
+            text-align: center;
+            animation: fadeInUp 1s ease-out 0.6s both;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            color: var(--primary);
+        }
+        
+        .version {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        
+        /* 추천 배지 */
+        .recommended {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--warning);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transform: rotate(15deg);
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        /* 애니메이션 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .device-selector {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .device-card {
+                padding: 1.5rem;
+            }
+            
+            .device-icon {
+                font-size: 3rem;
+            }
+            
+            .qr-code {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .footer-links {
+                gap: 1rem;
+            }
+        }
+        
+        /* 다크모드 토글 */
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--primary);
+            transform: scale(1.1);
+        }
+    </style>
+    <!-- QR 코드 생성 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="background"></div>
+    
+    <!-- 테마 토글 -->
+    <div class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span>
+    </div>
+    
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <h1 class="logo">🚀 Sensor Game Hub</h1>
+            <p class="subtitle">모바일 센서 기반 웹 게임 플랫폼</p>
+            <p class="description">
+                스마트폰의 센서를 활용하여 PC와 연동되는 혁신적인 게임 경험을 제공합니다. 
+                기기를 선택하여 시작하세요!
+            </p>
+        </header>
+        
+        <!-- 기기 선택 -->
+        <section class="device-selector">
+            <!-- PC 카드 -->
+            <div class="device-card pc" onclick="selectDevice('pc')">
+                <div class="recommended">추천</div>
+                <span class="device-icon">🖥️</span>
+                <h2 class="device-title">PC로 시작하기</h2>
+                <p class="device-description">
+                    게임을 플레이하고 센서 연결을 관리하는 메인 허브
+                </p>
+                <ul class="device-features">
+                    <li>게임 선택 및 시작</li>
+                    <li>센서 연결 관리</li>
+                    <li>멀티플레이어 룸 생성</li>
+                    <li>실시간 게임 화면</li>
+                </ul>
+                <button class="device-button">PC 허브로 이동</button>
+            </div>
+            
+            <!-- 모바일 카드 -->
+            <div class="device-card mobile" onclick="selectDevice('mobile')">
+                <span class="device-icon">📱</span>
+                <h2 class="device-title">모바일로 시작하기</h2>
+                <p class="device-description">
+                    스마트폰 센서를 게임 컨트롤러로 사용
+                </p>
+                <ul class="device-features">
+                    <li>기울기 센서 조작</li>
+                    <li>흔들기 센서 입력</li>
+                    <li>회전 센서 제어</li>
+                    <li>실시간 센서 피드백</li>
+                </ul>
+                <button class="device-button">센서 연결하기</button>
+            </div>
+        </section>
+        
+        <!-- QR 코드 -->
+        <section class="qr-section">
+            <h3 class="qr-title">📱 모바일에서 QR 코드로 빠른 접속</h3>
+            <div class="qr-container">
+                <canvas id="qrCode" class="qr-code"></canvas>
+            </div>
+            <p class="qr-url" id="currentUrl"></p>
+        </section>
+        
+        <!-- 푸터 -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="/admin" class="footer-link">🔧 관리자</a>
+                <a href="/api/status" class="footer-link">📊 서버 상태</a>
+                <a href="https://github.com/cmhblue1225/sensor-game-hub-v5" class="footer-link" target="_blank">📦 GitHub</a>
+            </div>
+            <p class="version">Sensor Game Hub v5.0 | Built with ❤️</p>
+        </footer>
+    </div>
+    
+    <script>
+        class DeviceSelector {
+            constructor() {
+                this.currentUrl = window.location.origin;
+                this.lastSelection = localStorage.getItem('sgh_last_device');
+                
+                this.init();
+            }
+            
+            init() {
+                this.generateQRCode();
+                this.updateURL();
+                this.checkAutoRedirect();
+                this.detectDevice();
+            }
+            
+            // QR 코드 생성
+            generateQRCode() {
+                const sensorUrl = `${this.currentUrl}/sensor`;
+                const canvas = document.getElementById('qrCode');
+                
+                QRCode.toCanvas(canvas, sensorUrl, {
+                    width: 150,
+                    margin: 2,
+                    color: {
+                        dark: '#1e293b',
+                        light: '#ffffff'
+                    }
+                }, (error) => {
+                    if (error) {
+                        console.error('QR 코드 생성 실패:', error);
+                    } else {
+                        console.log('✅ QR 코드 생성 완료');
+                    }
+                });
+                
+                document.getElementById('currentUrl').textContent = sensorUrl;
+            }
+            
+            // URL 업데이트
+            updateURL() {
+                document.getElementById('currentUrl').textContent = `${this.currentUrl}/sensor`;
+            }
+            
+            // 기기 감지 및 추천
+            detectDevice() {
+                const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const isTablet = /iPad/i.test(navigator.userAgent);
+                
+                if (isMobile && !isTablet) {
+                    this.showDeviceRecommendation('mobile');
+                } else {
+                    this.showDeviceRecommendation('pc');
+                }
+            }
+            
+            // 기기 추천 표시
+            showDeviceRecommendation(device) {
+                const pcCard = document.querySelector('.device-card.pc .recommended');
+                const mobileCard = document.querySelector('.device-card.mobile');
+                
+                if (device === 'mobile') {
+                    // 모바일 카드에 추천 배지 이동
+                    pcCard.remove();
+                    const recommendedBadge = document.createElement('div');
+                    recommendedBadge.className = 'recommended';
+                    recommendedBadge.textContent = '추천';
+                    mobileCard.appendChild(recommendedBadge);
+                    
+                    // 모바일 카드를 첫 번째로 이동
+                    const selector = document.querySelector('.device-selector');
+                    selector.insertBefore(mobileCard, selector.firstChild);
+                }
+            }
+            
+            // 자동 리다이렉트 확인
+            checkAutoRedirect() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const autoDevice = urlParams.get('device');
+                
+                if (autoDevice === 'pc') {
+                    this.selectDevice('pc');
+                } else if (autoDevice === 'mobile') {
+                    this.selectDevice('mobile');
+                }
+            }
+            
+            // 기기 선택
+            selectDevice(device) {
+                // 선택 저장
+                localStorage.setItem('sgh_last_device', device);
+                localStorage.setItem('sgh_last_selection_time', Date.now());
+                
+                // 애니메이션 효과
+                const selectedCard = document.querySelector(`.device-card.${device}`);
+                selectedCard.style.transform = 'scale(1.05)';
+                selectedCard.style.boxShadow = '0 25px 50px rgba(59, 130, 246, 0.4)';
+                
+                // 페이지 이동
+                setTimeout(() => {
+                    if (device === 'pc') {
+                        window.location.href = '/hub';
+                    } else if (device === 'mobile') {
+                        window.location.href = '/sensor';
+                    }
+                }, 300);
+                
+                console.log(`📱 기기 선택: ${device}`);
+            }
+            
+            // 빠른 재선택 (24시간 내)
+            checkQuickAccess() {
+                if (!this.lastSelection) return false;
+                
+                const lastTime = localStorage.getItem('sgh_last_selection_time');
+                if (!lastTime) return false;
+                
+                const timeDiff = Date.now() - parseInt(lastTime);
+                const oneDayMs = 24 * 60 * 60 * 1000;
+                
+                return timeDiff < oneDayMs;
+            }
+        }
+        
+        // 전역 함수들
+        function selectDevice(device) {
+            window.deviceSelector.selectDevice(device);
+        }
+        
+        function toggleTheme() {
+            const root = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            const isDark = root.style.getPropertyValue('--background') === '#ffffff';
+            
+            if (isDark) {
+                // 다크 모드로 변경
+                root.style.setProperty('--background', '#0f172a');
+                root.style.setProperty('--text-primary', '#f8fafc');
+                themeIcon.textContent = '🌙';
+            } else {
+                // 라이트 모드로 변경  
+                root.style.setProperty('--background', '#ffffff');
+                root.style.setProperty('--text-primary', '#1e293b');
+                themeIcon.textContent = '☀️';
+            }
+            
+            localStorage.setItem('sgh_theme', isDark ? 'dark' : 'light');
+        }
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            window.deviceSelector = new DeviceSelector();
+            
+            // 저장된 테마 적용
+            const savedTheme = localStorage.getItem('sgh_theme');
+            if (savedTheme === 'light') {
+                toggleTheme();
+            }
+            
+            console.log('🚀 기기 선택 페이지 로드 완료');
+        });
+        
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '1' || e.key === 'p' || e.key === 'P') {
+                selectDevice('pc');
+            } else if (e.key === '2' || e.key === 'm' || e.key === 'M') {
+                selectDevice('mobile');
+            }
+        });
+    </script>
+</body>
+</html>

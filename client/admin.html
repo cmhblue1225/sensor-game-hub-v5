@@ -51,6 +51,56 @@
             margin: 0 auto;
         }
         
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .home-button {
+            background: var(--primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+        
+        .home-button:hover {
+            background: var(--secondary);
+            transform: scale(1.1);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .nav-link:hover {
+            background: var(--surface);
+            color: var(--primary);
+        }
+        
         .header-title {
             font-size: 1.5rem;
             font-weight: 700;
@@ -289,6 +339,24 @@
                 gap: 1rem;
             }
             
+            .header-left {
+                order: 1;
+            }
+            
+            .header-right {
+                order: 2;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-links {
+                order: 1;
+            }
+            
+            .server-status {
+                order: 2;
+            }
+            
             .stat-grid {
                 grid-template-columns: 1fr;
             }
@@ -299,10 +367,21 @@
     <!-- 헤더 -->
     <header class="header">
         <div class="header-content">
-            <h1 class="header-title">🔧 관리자 대시보드</h1>
-            <div class="server-status">
-                <div class="status-dot" id="connectionStatus"></div>
-                <span id="connectionText">연결 중...</span>
+            <div class="header-left">
+                <a href="/" class="home-button" title="메인으로 돌아가기">
+                    <span>🏠</span>
+                </a>
+                <h1 class="header-title">🔧 관리자 대시보드</h1>
+            </div>
+            <div class="header-right">
+                <div class="nav-links">
+                    <a href="/hub" class="nav-link">🖥️ PC 허브</a>
+                    <a href="/sensor" class="nav-link">📱 센서</a>
+                </div>
+                <div class="server-status">
+                    <div class="status-dot" id="connectionStatus"></div>
+                    <span id="connectionText">연결 중...</span>
+                </div>
             </div>
         </div>
     </header>

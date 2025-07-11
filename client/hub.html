@@ -56,6 +56,31 @@
             align-items: center;
         }
         
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .home-button {
+            background: var(--primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+        
+        .home-button:hover {
+            background: var(--secondary);
+            transform: scale(1.1);
+        }
+        
         .logo {
             display: flex;
             align-items: center;
@@ -375,8 +400,13 @@
     <!-- 헤더 -->
     <header class="header">
         <div class="header-content">
-            <div class="logo">
-                🚀 Sensor Game Hub v5.0
+            <div class="header-left">
+                <a href="/" class="home-button" title="메인으로 돌아가기">
+                    <span>🏠</span>
+                </a>
+                <div class="logo">
+                    🚀 Sensor Game Hub v5.0
+                </div>
             </div>
             <div class="connection-status">
                 <div class="status-indicator" id="connectionStatus">

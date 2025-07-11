@@ -46,11 +46,47 @@
             background: var(--surface);
             border-bottom: 1px solid var(--border);
             padding: 1rem;
-            text-align: center;
             position: sticky;
             top: 0;
             z-index: 100;
             backdrop-filter: blur(10px);
+        }
+        
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .home-button {
+            background: var(--primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .home-button:hover {
+            background: var(--secondary);
+            transform: scale(1.1);
+        }
+        
+        .header-info {
+            text-align: left;
         }
         
         .logo {
@@ -397,8 +433,17 @@
 <body>
     <!-- 헤더 -->
     <header class="header">
-        <div class="logo">📱 Sensor Client v5.0</div>
-        <div class="subtitle">모바일 센서 컨트롤러</div>
+        <div class="header-content">
+            <div class="header-left">
+                <a href="/" class="home-button" title="메인으로 돌아가기">
+                    <span>🏠</span>
+                </a>
+                <div class="header-info">
+                    <div class="logo">📱 Sensor Client v5.0</div>
+                    <div class="subtitle">모바일 센서 컨트롤러</div>
+                </div>
+            </div>
+        </div>
     </header>
 
     <!-- 메인 컨테이너 -->

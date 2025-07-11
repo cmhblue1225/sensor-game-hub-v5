@@ -1146,8 +1146,13 @@ function cleanupDisconnectedClients() {
 
 // ========== HTTP 라우트 ==========
 
-// 메인 허브
+// 메인 랜딩 페이지 (기기 선택)
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'index.html'));
+});
+
+// PC 허브
+app.get('/hub', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'hub.html'));
 });
 
