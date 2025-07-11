@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 솔로 센서 테스트</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* 게임 캔버스 */
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+        }
+        
+        /* UI 오버레이 */
+        .game-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .ui-panel {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            pointer-events: all;
+        }
+        
+        /* 점수 패널 (좌상단) */
+        .score-panel {
+            top: 1rem;
+            left: 1rem;
+        }
+        
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+        }
+        
+        .score-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        /* 상태 패널 (우상단) */
+        .status-panel {
+            top: 1rem;
+            right: 1rem;
+            text-align: right;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+        }
+        
+        .status-indicator.connected {
+            background: var(--success);
+        }
+        
+        /* 센서 데이터 패널 (좌하단) */
+        .sensor-panel {
+            bottom: 1rem;
+            left: 1rem;
+            min-width: 200px;
+        }
+        
+        .sensor-section {
+            margin-bottom: 1rem;
+        }
+        
+        .sensor-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .sensor-values {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .sensor-value {
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        
+        .sensor-value-label {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+        }
+        
+        .sensor-value-number {
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* 컨트롤 패널 (하단 중앙) */
+        .control-panel {
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* 인스트럭션 패널 */
+        .instruction-panel {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            max-width: 400px;
+            transition: opacity 0.3s ease;
+        }
+        
+        .instruction-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .instruction-text {
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+        
+        /* 히든 클래스 */
+        .hidden {
+            display: none !important;
+        }
+        
+        .fade-out {
+            opacity: 0;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .ui-panel {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+            
+            .score-value {
+                font-size: 1.5rem;
+            }
+            
+            .sensor-panel {
+                min-width: 150px;
+            }
+            
+            .instruction-panel {
+                max-width: 300px;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 게임 캔버스 -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- 게임 UI 오버레이 -->
+    <div class="game-ui">
+        <!-- 점수 패널 -->
+        <div class="ui-panel score-panel">
+            <div class="score-value" id="scoreValue">0</div>
+            <div class="score-label">점수</div>
+        </div>
+        
+        <!-- 상태 패널 -->
+        <div class="ui-panel status-panel">
+            <div class="status-item">
+                <span>서버 연결</span>
+                <div class="status-indicator" id="serverStatus"></div>
+            </div>
+            <div class="status-item">
+                <span>센서 연결</span>
+                <div class="status-indicator" id="sensorStatus"></div>
+            </div>
+            <div class="status-item">
+                <span id="gameStatusText">대기 중</span>
+            </div>
+        </div>
+        
+        <!-- 센서 데이터 패널 -->
+        <div class="ui-panel sensor-panel hidden" id="sensorPanel">
+            <div class="sensor-section">
+                <div class="sensor-title">🧭 방향 (기울기)</div>
+                <div class="sensor-values">
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">X</div>
+                        <div class="sensor-value-number" id="tiltX">0.0</div>
+                    </div>
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">Y</div>
+                        <div class="sensor-value-number" id="tiltY">0.0</div>
+                    </div>
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">-</div>
+                        <div class="sensor-value-number">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sensor-section">
+                <div class="sensor-title">📐 가속도</div>
+                <div class="sensor-values">
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">X</div>
+                        <div class="sensor-value-number" id="accelX">0.0</div>
+                    </div>
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">Y</div>
+                        <div class="sensor-value-number" id="accelY">0.0</div>
+                    </div>
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">Z</div>
+                        <div class="sensor-value-number" id="accelZ">0.0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sensor-section">
+                <div class="sensor-title">🌀 회전</div>
+                <div class="sensor-values">
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">X</div>
+                        <div class="sensor-value-number" id="gyroX">0.0</div>
+                    </div>
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">Y</div>
+                        <div class="sensor-value-number" id="gyroY">0.0</div>
+                    </div>
+                    <div class="sensor-value">
+                        <div class="sensor-value-label">Z</div>
+                        <div class="sensor-value-number" id="gyroZ">0.0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 컨트롤 패널 -->
+        <div class="ui-panel control-panel">
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="game.reset()">🔄 리셋</button>
+                <button class="btn btn-secondary" onclick="game.toggleSensorDisplay()">📊 센서</button>
+                <button class="btn btn-primary" onclick="window.close()">🏠 나가기</button>
+            </div>
+        </div>
+        
+        <!-- 인스트럭션 패널 -->
+        <div class="ui-panel instruction-panel" id="instructionPanel">
+            <div class="instruction-title">🎯 솔로 센서 테스트</div>
+            <div class="instruction-text">
+                센서가 연결되면 게임이 시작됩니다.<br>
+                기기를 기울이고 흔들어서 센서 반응을 확인하세요!
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="game.createSession()">세션 생성</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SDK 로드 -->
+    <script src="/sdk/sensor-game-sdk.js"></script>
+    
+    <!-- 게임 스크립트 -->
+    <script src="game.js"></script>
+</body>
+</html>

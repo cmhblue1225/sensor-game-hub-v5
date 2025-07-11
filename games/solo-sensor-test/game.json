@@ -1,0 +1,30 @@
+{
+  "gameId": "solo-sensor-test",
+  "name": "솔로 센서 테스트",
+  "description": "센서 기능을 테스트하는 기본 싱글플레이어 게임입니다. 기기를 기울이고 흔들어서 센서 반응을 확인하세요.",
+  "version": "1.0.0",
+  "author": "Sensor Game Hub Team",
+  "category": "test",
+  "modes": ["solo"],
+  "sensorTypes": ["orientation", "accelerometer", "gyroscope"],
+  "minPlayers": 1,
+  "maxPlayers": 1,
+  "supportsDualSensor": false,
+  "features": [
+    "실시간 센서 데이터 시각화",
+    "기울기 기반 공 움직임",
+    "흔들기 기반 파티클 효과",
+    "회전 기반 배경색 변화",
+    "점수 시스템"
+  ],
+  "controls": {
+    "orientation": "기기를 기울여서 공을 움직이세요",
+    "accelerometer": "기기를 흔들어서 파티클을 생성하세요",
+    "gyroscope": "기기를 회전시켜서 배경색을 변경하세요"
+  },
+  "difficulty": "easy",
+  "tags": ["test", "sensor", "visualization", "tutorial"],
+  "thumbnailUrl": "/games/solo-sensor-test/thumbnail.png",
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z"
+}

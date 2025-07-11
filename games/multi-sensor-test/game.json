@@ -1,0 +1,32 @@
+{
+  "gameId": "multi-sensor-test",
+  "name": "멀티플레이어 센서 테스트",
+  "description": "최대 4명이 함께 플레이하는 멀티플레이어 센서 테스트 게임입니다. 다른 플레이어들과 센서 활동을 경쟁하세요!",
+  "version": "1.0.0",
+  "author": "Sensor Game Hub Team",
+  "category": "test",
+  "modes": ["multiplayer"],
+  "sensorTypes": ["orientation", "accelerometer", "gyroscope"],
+  "minPlayers": 2,
+  "maxPlayers": 4,
+  "supportsDualSensor": false,
+  "features": [
+    "실시간 멀티플레이어",
+    "플레이어별 센서 시각화",
+    "경쟁적 점수 시스템",
+    "실시간 리더보드",
+    "플레이어 상호작용"
+  ],
+  "controls": {
+    "orientation": "기기를 기울여서 움직이세요",
+    "accelerometer": "기기를 흔들어서 파티클을 생성하세요",
+    "gyroscope": "기기를 회전시켜서 색상을 변경하세요"
+  },
+  "gameplayType": "competitive",
+  "duration": "3분",
+  "difficulty": "medium",
+  "tags": ["test", "sensor", "multiplayer", "competitive", "realtime"],
+  "thumbnailUrl": "/games/multi-sensor-test/thumbnail.png",
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z"
+}

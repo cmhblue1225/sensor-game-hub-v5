@@ -1,0 +1,33 @@
+{
+  "gameId": "dual-sensor-test",
+  "name": "듀얼 센서 테스트",
+  "description": "두 개의 센서를 동시에 사용하여 협조 플레이를 하는 게임입니다. 각 센서로 다른 공을 조종하여 목표를 달성하세요!",
+  "version": "1.0.0",
+  "author": "Sensor Game Hub Team",
+  "category": "test",
+  "modes": ["dual"],
+  "sensorTypes": ["orientation", "accelerometer", "gyroscope"],
+  "minPlayers": 1,
+  "maxPlayers": 1,
+  "supportsDualSensor": true,
+  "requiresDualSensor": true,
+  "features": [
+    "듀얼 센서 동시 조작",
+    "협조 기반 게임플레이",
+    "실시간 물리 시뮬레이션",
+    "목표 지향적 미션",
+    "센서별 역할 분담"
+  ],
+  "controls": {
+    "sensor1": "파란색 공을 조종합니다",
+    "sensor2": "빨간색 공을 조종합니다",
+    "objective": "두 공을 중앙 목표에 동시에 도달시키세요"
+  },
+  "gameplayType": "cooperative",
+  "duration": "무제한",
+  "difficulty": "hard",
+  "tags": ["test", "sensor", "dual", "cooperative", "physics"],
+  "thumbnailUrl": "/games/dual-sensor-test/thumbnail.png",
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z"
+}

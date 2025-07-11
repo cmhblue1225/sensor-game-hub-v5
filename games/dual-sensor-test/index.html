@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 듀얼 센서 테스트</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #06b6d4;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+            --sensor1-color: #3b82f6;
+            --sensor2-color: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* 게임 캔버스 */
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+        }
+        
+        /* UI 오버레이 */
+        .game-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .ui-panel {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            pointer-events: all;
+        }
+        
+        /* 미션 상태 (상단 중앙) */
+        .mission-panel {
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .mission-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--sensor1-color), var(--sensor2-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .mission-status {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .mission-progress {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .sensor-target {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .sensor-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+        }
+        
+        .sensor-indicator.sensor1 {
+            color: var(--sensor1-color);
+        }
+        
+        .sensor-indicator.sensor2 {
+            color: var(--sensor2-color);
+        }
+        
+        .sensor-indicator.completed {
+            background: currentColor;
+        }
+        
+        /* 센서 상태 (좌상단) */
+        .sensor-status-panel {
+            top: 1rem;
+            left: 1rem;
+            min-width: 200px;
+        }
+        
+        .sensor-status-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+            text-align: center;
+        }
+        
+        .sensor-status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.25rem;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .sensor-status-item.sensor1 {
+            border-left: 3px solid var(--sensor1-color);
+        }
+        
+        .sensor-status-item.sensor2 {
+            border-left: 3px solid var(--sensor2-color);
+        }
+        
+        .sensor-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+        }
+        
+        .status-indicator.connected {
+            background: var(--success);
+        }
+        
+        /* 점수 패널 (우상단) */
+        .score-panel {
+            top: 1rem;
+            right: 1rem;
+            text-align: center;
+        }
+        
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+        }
+        
+        .score-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .mission-counter {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        .mission-counter-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--warning);
+        }
+        
+        .mission-counter-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        /* 컨트롤 패널 (하단 중앙) */
+        .control-panel {
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* 인스트럭션 패널 */
+        .instruction-panel {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            max-width: 500px;
+            min-width: 400px;
+        }
+        
+        .instruction-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--sensor1-color), var(--sensor2-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .instruction-text {
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+        
+        .sensor-setup-guide {
+            background: var(--surface);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--info);
+        }
+        
+        .sensor-setup-title {
+            font-weight: 600;
+            color: var(--info);
+            margin-bottom: 0.5rem;
+        }
+        
+        .sensor-setup-steps {
+            list-style: none;
+            text-align: left;
+        }
+        
+        .sensor-setup-steps li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .sensor-setup-steps li::before {
+            content: '📱';
+            position: absolute;
+            left: 0;
+        }
+        
+        /* 성공 패널 */
+        .success-panel {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            max-width: 400px;
+            min-width: 300px;
+            border: 2px solid var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .success-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--success);
+        }
+        
+        .success-text {
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+        }
+        
+        /* 히든 클래스 */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .ui-panel {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+            
+            .mission-panel {
+                min-width: 250px;
+            }
+            
+            .sensor-status-panel {
+                min-width: 150px;
+            }
+            
+            .score-value {
+                font-size: 1.5rem;
+            }
+            
+            .instruction-panel {
+                max-width: 350px;
+                min-width: 300px;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 게임 캔버스 -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- 게임 UI 오버레이 -->
+    <div class="game-ui">
+        <!-- 미션 상태 -->
+        <div class="ui-panel mission-panel hidden" id="missionPanel">
+            <div class="mission-title">🎯 미션: 두 공을 목표에 도달시키기</div>
+            <div class="mission-status" id="missionStatus">센서를 기울여서 공을 조종하세요</div>
+            <div class="mission-progress">
+                <div class="sensor-target">
+                    <div class="sensor-indicator sensor1" id="sensor1Target"></div>
+                    <span>센서 1 (파란공)</span>
+                </div>
+                <div class="sensor-target">
+                    <div class="sensor-indicator sensor2" id="sensor2Target"></div>
+                    <span>센서 2 (빨간공)</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 센서 상태 -->
+        <div class="ui-panel sensor-status-panel">
+            <div class="sensor-status-title">📱 센서 상태</div>
+            <div class="sensor-status-item sensor1">
+                <div class="sensor-name">
+                    <span>센서 1 (파란공)</span>
+                </div>
+                <div class="status-indicator" id="sensor1Status"></div>
+            </div>
+            <div class="sensor-status-item sensor2">
+                <div class="sensor-name">
+                    <span>센서 2 (빨간공)</span>
+                </div>
+                <div class="status-indicator" id="sensor2Status"></div>
+            </div>
+            <div class="sensor-status-item">
+                <div class="sensor-name">
+                    <span>서버 연결</span>
+                </div>
+                <div class="status-indicator" id="serverStatus"></div>
+            </div>
+        </div>
+        
+        <!-- 점수 패널 -->
+        <div class="ui-panel score-panel hidden" id="scorePanel">
+            <div class="score-value" id="scoreValue">0</div>
+            <div class="score-label">점수</div>
+            <div class="mission-counter">
+                <div class="mission-counter-value" id="missionCount">0</div>
+                <div class="mission-counter-label">완료한 미션</div>
+            </div>
+        </div>
+        
+        <!-- 컨트롤 패널 -->
+        <div class="ui-panel control-panel">
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="game.reset()" id="resetBtn">🔄 리셋</button>
+                <button class="btn btn-primary" onclick="window.close()">🏠 나가기</button>
+            </div>
+        </div>
+        
+        <!-- 인스트럭션 패널 -->
+        <div class="ui-panel instruction-panel" id="instructionPanel">
+            <div class="instruction-title">🎮 듀얼 센서 테스트</div>
+            <div class="instruction-text">
+                두 개의 센서를 동시에 사용하여 협조 플레이를 즐기세요!<br>
+                각 센서로 다른 공을 조종하여 목표를 달성하는 게임입니다.
+            </div>
+            
+            <div class="sensor-setup-guide">
+                <div class="sensor-setup-title">📋 센서 설정 방법</div>
+                <ul class="sensor-setup-steps">
+                    <li>첫 번째 기기로 QR 코드를 스캔하여 센서 1 연결</li>
+                    <li>두 번째 기기로 동일한 QR 코드를 스캔하여 센서 2 연결</li>
+                    <li>두 센서가 모두 연결되면 게임이 시작됩니다</li>
+                    <li>각 센서로 파란공과 빨간공을 조종하세요</li>
+                </ul>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="game.createSession()">세션 생성</button>
+            </div>
+        </div>
+        
+        <!-- 성공 패널 -->
+        <div class="ui-panel success-panel hidden" id="successPanel">
+            <div class="success-title">🎉 미션 성공!</div>
+            <div class="success-text" id="successMessage">
+                두 공을 목표에 성공적으로 도달시켰습니다!
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="game.startNewMission()">🎯 새 미션</button>
+                <button class="btn btn-secondary" onclick="game.hideSuccessPanel()">계속 플레이</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SDK 로드 -->
+    <script src="/sdk/sensor-game-sdk.js"></script>
+    
+    <!-- 게임 스크립트 -->
+    <script src="game.js"></script>
+</body>
+</html>

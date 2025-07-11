@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👥 멀티플레이어 센서 테스트</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* 게임 캔버스 */
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+        }
+        
+        /* UI 오버레이 */
+        .game-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .ui-panel {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            pointer-events: all;
+        }
+        
+        /* 리더보드 (좌상단) */
+        .leaderboard-panel {
+            top: 1rem;
+            left: 1rem;
+            min-width: 200px;
+        }
+        
+        .leaderboard-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+            text-align: center;
+        }
+        
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+            border-radius: 0.25rem;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .player-item.me {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--success);
+        }
+        
+        .player-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .player-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .player-score {
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* 게임 상태 (우상단) */
+        .status-panel {
+            top: 1rem;
+            right: 1rem;
+            text-align: right;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+        }
+        
+        .status-indicator.connected {
+            background: var(--success);
+        }
+        
+        .timer-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--warning);
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* 플레이어 정보 (좌하단) */
+        .player-info-panel {
+            bottom: 1rem;
+            left: 1rem;
+            min-width: 200px;
+        }
+        
+        .my-stats {
+            text-align: center;
+        }
+        
+        .my-score {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+        }
+        
+        .activity-bars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .activity-bar {
+            text-align: center;
+        }
+        
+        .activity-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .activity-progress {
+            width: 100%;
+            height: 20px;
+            background: var(--surface);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .activity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.2s ease;
+            border-radius: 10px;
+        }
+        
+        /* 컨트롤 패널 (하단 중앙) */
+        .control-panel {
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* 대기실 패널 */
+        .lobby-panel {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            max-width: 400px;
+            min-width: 300px;
+        }
+        
+        .lobby-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .lobby-players {
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        
+        .lobby-player {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--surface);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+        }
+        
+        .lobby-player.host {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .waiting-message {
+            color: var(--text-secondary);
+            margin: 1rem 0;
+        }
+        
+        /* 게임 결과 패널 */
+        .results-panel {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            max-width: 400px;
+            min-width: 300px;
+        }
+        
+        .results-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .winner-announcement {
+            font-size: 1.2rem;
+            color: var(--success);
+            margin-bottom: 1.5rem;
+        }
+        
+        .final-scores {
+            text-align: left;
+            margin: 1.5rem 0;
+        }
+        
+        .final-score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--surface);
+            border-radius: 0.5rem;
+        }
+        
+        .final-score-item.winner {
+            border: 2px solid var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        /* 히든 클래스 */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .ui-panel {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+            
+            .leaderboard-panel,
+            .player-info-panel {
+                min-width: 150px;
+            }
+            
+            .my-score {
+                font-size: 1.5rem;
+            }
+            
+            .lobby-panel,
+            .results-panel {
+                max-width: 300px;
+                min-width: 250px;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 게임 캔버스 -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- 게임 UI 오버레이 -->
+    <div class="game-ui">
+        <!-- 리더보드 -->
+        <div class="ui-panel leaderboard-panel hidden" id="leaderboardPanel">
+            <div class="leaderboard-title">🏆 리더보드</div>
+            <div id="playersList"></div>
+        </div>
+        
+        <!-- 게임 상태 -->
+        <div class="ui-panel status-panel">
+            <div class="status-item">
+                <span>서버 연결</span>
+                <div class="status-indicator" id="serverStatus"></div>
+            </div>
+            <div class="status-item">
+                <span>센서 연결</span>
+                <div class="status-indicator" id="sensorStatus"></div>
+            </div>
+            <div class="status-item">
+                <span id="gameStatusText">대기 중</span>
+            </div>
+            <div class="status-item hidden" id="timerContainer">
+                <span>남은 시간</span>
+                <div class="timer-display" id="timerDisplay">3:00</div>
+            </div>
+        </div>
+        
+        <!-- 내 정보 -->
+        <div class="ui-panel player-info-panel hidden" id="playerInfoPanel">
+            <div class="my-stats">
+                <div class="my-score" id="myScore">0</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">내 점수</div>
+            </div>
+            
+            <div class="activity-bars">
+                <div class="activity-bar">
+                    <div class="activity-label">기울기</div>
+                    <div class="activity-progress">
+                        <div class="activity-fill" id="tiltActivity" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="activity-bar">
+                    <div class="activity-label">흔들기</div>
+                    <div class="activity-progress">
+                        <div class="activity-fill" id="shakeActivity" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="activity-bar">
+                    <div class="activity-label">회전</div>
+                    <div class="activity-progress">
+                        <div class="activity-fill" id="rotationActivity" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 컨트롤 패널 -->
+        <div class="ui-panel control-panel">
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="game.reset()" id="resetBtn">🔄 리셋</button>
+                <button class="btn btn-success hidden" onclick="game.startGame()" id="startGameBtn">🎮 게임 시작</button>
+                <button class="btn btn-primary" onclick="window.close()">🏠 나가기</button>
+            </div>
+        </div>
+        
+        <!-- 대기실 패널 -->
+        <div class="ui-panel lobby-panel" id="lobbyPanel">
+            <div class="lobby-title">👥 대기실</div>
+            <div class="waiting-message">
+                센서를 연결하고 룸을 생성하거나 참가하세요.
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="game.createSession()" id="createSessionBtn">세션 생성</button>
+            </div>
+            
+            <div class="lobby-players hidden" id="lobbyPlayers">
+                <h4 style="margin-bottom: 1rem;">참가자 목록</h4>
+                <div id="playersListLobby"></div>
+            </div>
+            
+            <div class="btn-group hidden" id="roomControls">
+                <button class="btn btn-success" onclick="game.createRoom()">🏠 룸 생성</button>
+                <button class="btn btn-secondary" onclick="game.promptJoinRoom()">👥 룸 참가</button>
+            </div>
+        </div>
+        
+        <!-- 게임 결과 패널 -->
+        <div class="ui-panel results-panel hidden" id="resultsPanel">
+            <div class="results-title">🎯 게임 종료</div>
+            <div class="winner-announcement" id="winnerText"></div>
+            <div class="final-scores" id="finalScores"></div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="game.returnToLobby()">🔄 다시 플레이</button>
+                <button class="btn btn-secondary" onclick="window.close()">🏠 나가기</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SDK 로드 -->
+    <script src="/sdk/sensor-game-sdk.js"></script>
+    
+    <!-- 게임 스크립트 -->
+    <script src="game.js"></script>
+</body>
+</html>
