@@ -251,13 +251,48 @@
             height: 150px;
         }
         
+        .qr-url-section {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .qr-url-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
         .qr-url {
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
-            color: var(--text-muted);
+            color: var(--primary);
             word-break: break-all;
             max-width: 300px;
-            margin: 0 auto;
+            margin: 0 auto 0.75rem;
+            padding: 0.5rem;
+            background: var(--surface);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+        }
+        
+        .copy-url-btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-url-btn:hover {
+            background: var(--primary);
+            transform: translateY(-1px);
+        }
+        
+        .copy-url-btn.copied {
+            background: var(--success);
         }
         
         /* 푸터 */
@@ -377,8 +412,7 @@
             transform: scale(1.1);
         }
     </style>
-    <!-- QR 코드 생성 라이브러리 -->
-    <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- QR 코드 생성을 위한 Google Chart API 사용 (외부 라이브러리 불필요) -->
 </head>
 <body>
     <div class="background"></div>
@@ -441,7 +475,11 @@
             <div class="qr-container">
                 <canvas id="qrCode" class="qr-code"></canvas>
             </div>
-            <p class="qr-url" id="currentUrl"></p>
+            <div class="qr-url-section">
+                <p class="qr-url-label">또는 직접 접속:</p>
+                <p class="qr-url" id="currentUrl"></p>
+                <button class="copy-url-btn" onclick="copyToClipboard()" id="copyBtn">📋 복사</button>
+            </div>
         </section>
         
         <!-- 푸터 -->
@@ -486,63 +524,99 @@
                 console.log('✅ DeviceSelector 이벤트 리스너 설정 완료');
             }
             
-            // QR 코드 생성
+            // QR 코드 생성 (Google Charts API 사용)
             generateQRCode() {
                 const sensorUrl = `${this.currentUrl}/sensor`;
                 const canvas = document.getElementById('qrCode');
                 
-                // QRCode 라이브러리 로드 확인
-                if (typeof QRCode === 'undefined') {
-                    console.warn('QRCode 라이브러리가 로드되지 않음, 대체 방법 사용');
-                    this.generateQRCodeFallback(sensorUrl);
-                    return;
-                }
-                
+                // Google Charts QR API를 사용한 이미지 생성
                 try {
-                    QRCode.toCanvas(canvas, sensorUrl, {
-                        width: 150,
-                        margin: 2,
-                        color: {
-                            dark: '#1e293b',
-                            light: '#ffffff'
-                        }
-                    }, (error) => {
-                        if (error) {
-                            console.error('QR 코드 생성 실패:', error);
-                            this.generateQRCodeFallback(sensorUrl);
-                        } else {
-                            console.log('✅ QR 코드 생성 완료');
-                        }
-                    });
+                    this.generateQRCodeWithGoogle(sensorUrl);
                 } catch (error) {
-                    console.error('QR 코드 생성 중 오류:', error);
+                    console.error('Google QR 코드 생성 실패:', error);
                     this.generateQRCodeFallback(sensorUrl);
                 }
                 
                 document.getElementById('currentUrl').textContent = sensorUrl;
             }
             
-            // QR 코드 대체 방법
+            // Google Charts API로 QR 코드 생성
+            generateQRCodeWithGoogle(sensorUrl) {
+                const qrContainer = document.querySelector('.qr-container');
+                const canvas = document.getElementById('qrCode');
+                
+                // 기존 캔버스 숨기기
+                canvas.style.display = 'none';
+                
+                // QR 코드 이미지 생성
+                const img = document.createElement('img');
+                const encodedUrl = encodeURIComponent(sensorUrl);
+                img.src = `https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=${encodedUrl}&choe=UTF-8`;
+                img.alt = 'QR Code for Sensor Connection';
+                img.className = 'qr-code';
+                img.style.width = '150px';
+                img.style.height = '150px';
+                
+                // 기존 이미지가 있다면 제거
+                const existingImg = qrContainer.querySelector('img');
+                if (existingImg) {
+                    existingImg.remove();
+                }
+                
+                // 이미지 로드 확인
+                img.onload = () => {
+                    console.log('✅ Google Charts QR 코드 생성 완료');
+                };
+                
+                img.onerror = () => {
+                    console.warn('Google Charts QR 코드 로드 실패, 대체 방법 사용');
+                    img.remove();
+                    canvas.style.display = 'block';
+                    this.generateQRCodeFallback(sensorUrl);
+                };
+                
+                // 캔버스 앞에 이미지 추가
+                qrContainer.insertBefore(img, canvas);
+            }
+            
+            // QR 코드 대체 방법 (더 예쁘게)
             generateQRCodeFallback(sensorUrl) {
                 const canvas = document.getElementById('qrCode');
                 const ctx = canvas.getContext('2d');
                 
-                // 간단한 대체 UI
+                // 캔버스 크기 설정
                 canvas.width = 150;
                 canvas.height = 150;
+                canvas.style.display = 'block';
                 
-                ctx.fillStyle = '#1e293b';
+                // 배경
+                ctx.fillStyle = '#f8fafc';
                 ctx.fillRect(0, 0, 150, 150);
                 
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('📱', 75, 60);
-                ctx.fillText('QR 코드', 75, 80);
-                ctx.fillText('대신 URL을', 75, 100);
-                ctx.fillText('직접 입력하세요', 75, 120);
+                // 테두리
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(5, 5, 140, 140);
                 
-                console.log('QR 코드 대체 UI 생성 완료');
+                // 아이콘
+                ctx.fillStyle = '#3b82f6';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('📱', 75, 50);
+                
+                // 텍스트
+                ctx.fillStyle = '#1e293b';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText('모바일에서', 75, 75);
+                ctx.fillText('아래 URL로', 75, 95);
+                ctx.fillText('직접 접속하세요', 75, 115);
+                
+                // 포인터
+                ctx.fillStyle = '#8b5cf6';
+                ctx.font = '16px Arial';
+                ctx.fillText('👇', 75, 135);
+                
+                console.log('✅ QR 코드 대체 UI 생성 완료');
             }
             
             // URL 업데이트
@@ -663,6 +737,67 @@
             }
             
             localStorage.setItem('sgh_theme', isDark ? 'dark' : 'light');
+        }
+        
+        // URL 클립보드 복사 기능
+        function copyToClipboard() {
+            const urlElement = document.getElementById('currentUrl');
+            const copyBtn = document.getElementById('copyBtn');
+            
+            if (!urlElement) return;
+            
+            const url = urlElement.textContent;
+            
+            // 모던 브라우저의 Clipboard API 사용
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showCopySuccess(copyBtn);
+                }).catch(() => {
+                    fallbackCopyToClipboard(url, copyBtn);
+                });
+            } else {
+                // 구형 브라우저 대응
+                fallbackCopyToClipboard(url, copyBtn);
+            }
+        }
+        
+        // 복사 성공 표시
+        function showCopySuccess(button) {
+            const originalText = button.textContent;
+            button.textContent = '✅ 복사됨!';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied');
+            }, 2000);
+            
+            console.log('📋 URL 클립보드 복사 완료');
+        }
+        
+        // 구형 브라우저용 복사 방법
+        function fallbackCopyToClipboard(text, button) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopySuccess(button);
+            } catch (err) {
+                console.error('복사 실패:', err);
+                button.textContent = '❌ 복사 실패';
+                setTimeout(() => {
+                    button.textContent = '📋 복사';
+                }, 2000);
+            }
+            
+            document.body.removeChild(textArea);
         }
         
         // 초기화
