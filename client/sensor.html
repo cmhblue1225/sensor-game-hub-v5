@@ -1056,6 +1056,8 @@
                     gyroscope: this.sensorData.gyroscope
                 };
                 
+                console.log('📤 센서 데이터 전송:', correctedData);
+                
                 this.send({
                     type: 'sensor_data',
                     sensorId: this.sensorId,

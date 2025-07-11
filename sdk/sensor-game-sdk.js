@@ -289,11 +289,15 @@ class SensorGameSDK {
      * 센서 데이터 처리
      */
     handleSensorData(message) {
+        console.log('📊 센서 데이터 수신:', message.sensorId, message.data);
+        
         // 원시 센서 데이터 저장
         this.state.sensorData = message.data;
         
         // 센서 데이터 처리 및 변환
         this.state.processedSensorData = this.sensorProcessor.process(message.data);
+        
+        console.log('🔄 처리된 센서 데이터:', this.state.processedSensorData);
         
         // 게임별 센서 데이터 콜백
         if (typeof this.onSensorData === 'function') {
@@ -628,12 +632,16 @@ class SensorDataProcessor {
      * 센서 데이터 처리
      */
     process(rawData) {
+        console.log('🔧 센서 프로세서 - 원시 데이터:', rawData);
+        
         const processed = {
             tilt: this.processTilt(rawData.orientation),
             movement: this.processMovement(rawData.accelerometer),
             rotation: this.processRotation(rawData.gyroscope),
             shake: this.processShake(rawData.accelerometer)
         };
+        
+        console.log('⚙️ 센서 프로세서 - 처리 결과:', processed);
         
         // 평활화 적용
         processed.tilt = this.smooth(processed.tilt, this.previousValues.tilt);

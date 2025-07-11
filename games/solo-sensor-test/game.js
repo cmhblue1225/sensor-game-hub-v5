@@ -178,11 +178,13 @@ class SoloSensorTestGame extends SensorGameSDK {
      * 센서 데이터 수신
      */
     onSensorData(processedData, rawData) {
+        console.log('🎮 게임에서 센서 데이터 수신:', processedData);
+        
         // 볼 움직임 업데이트 (기울기)
         this.updateBallMovement(processedData.tilt);
         
         // 흔들기 파티클 효과
-        if (processedData.shake.detected) {
+        if (processedData.shake && processedData.shake.detected) {
             this.createShakeParticles(processedData.shake.intensity);
         }
         
