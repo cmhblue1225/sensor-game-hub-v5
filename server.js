@@ -118,8 +118,8 @@ const rooms = new Map();        // roomId -> Room
 const clients = new Map();      // clientId -> Client
 const games = new Map();        // gameId -> GameMetadata
 
-// 세션 코드 관리
-const usedSessionCodes = new Set();
+// TTL 기반 세션 코드 관리 (중복 방지 및 메모리 누수 방지)
+const recentlyUsedCodes = new Map(); // code -> expiry timestamp
 const adminClients = new Set();
 
 // 서버 통계
@@ -323,24 +323,68 @@ class Client {
 // ========== 유틸리티 함수들 ==========
 
 /**
- * 4자리 세션 코드 생성
+ * 4자리 세션 코드 생성 (TTL 기반 중복 방지)
  */
 function generateSessionCode() {
     let attempts = 0;
     while (attempts < 10000) {
         const code = Math.floor(1000 + Math.random() * 9000).toString();
-        if (!sessions.has(code) && !usedSessionCodes.has(code)) {
-            usedSessionCodes.add(code);
-            // 사용된 코드 정리 (1000개 초과 시)
-            if (usedSessionCodes.size > 1000) {
-                const oldCodes = Array.from(usedSessionCodes).slice(0, 100);
-                oldCodes.forEach(oldCode => usedSessionCodes.delete(oldCode));
-            }
+        
+        // 활성 세션과 최근 사용 코드 모두 확인
+        if (!sessions.has(code) && !isRecentlyUsed(code)) {
+            addToRecentlyUsed(code);
             return code;
         }
         attempts++;
     }
     throw new Error('사용 가능한 세션 코드 부족');
+}
+
+/**
+ * 최근 사용된 코드인지 확인 (TTL 기반)
+ */
+function isRecentlyUsed(code) {
+    const expiry = recentlyUsedCodes.get(code);
+    if (expiry && Date.now() < expiry) {
+        return true;
+    }
+    // 만료된 코드는 자동으로 제거
+    if (expiry) {
+        recentlyUsedCodes.delete(code);
+    }
+    return false;
+}
+
+/**
+ * 최근 사용 코드에 추가 (30분 TTL)
+ */
+function addToRecentlyUsed(code) {
+    const expiry = Date.now() + (30 * 60 * 1000); // 30분
+    recentlyUsedCodes.set(code, expiry);
+    
+    // 주기적으로 만료된 코드 정리 (성능 최적화)
+    if (recentlyUsedCodes.size % 100 === 0) {
+        cleanupExpiredCodes();
+    }
+}
+
+/**
+ * 만료된 세션 코드 정리
+ */
+function cleanupExpiredCodes() {
+    const now = Date.now();
+    let cleanedCount = 0;
+    
+    for (const [code, expiry] of recentlyUsedCodes.entries()) {
+        if (now >= expiry) {
+            recentlyUsedCodes.delete(code);
+            cleanedCount++;
+        }
+    }
+    
+    if (cleanedCount > 0) {
+        console.log(`🧹 만료된 세션 코드 ${cleanedCount}개 정리됨`);
+    }
 }
 
 /**
@@ -1106,10 +1150,17 @@ function handleDisconnect(clientId) {
                         
                         // 빈 룸 정리
                         if (room.isEmpty()) {
+                            room.cleanup();
                             rooms.delete(session.roomId);
                             console.log(`🗑️ 빈 룸 정리: ${session.roomId}`);
                         }
                     }
+                }
+                
+                // 세션에 연결된 클라이언트가 없다면 즉시 정리
+                if (session.sensorClients.size === 0) {
+                    console.log(`🧹 빈 세션 즉시 정리: ${session.sessionCode}`);
+                    cleanupSession(session.sessionCode);
                 }
             }
             
@@ -1137,6 +1188,12 @@ function handleDisconnect(clientId) {
                         });
                     }
                 }
+                
+                // 세션에 연결된 센서가 없고 PC 클라이언트도 없다면 즉시 정리
+                if (session && session.sensorClients.size === 0 && !session.pcClientId) {
+                    console.log(`🧹 빈 세션 즉시 정리: ${session.sessionCode}`);
+                    cleanupSession(session.sessionCode);
+                }
             }
             
         } else if (client.type === CLIENT_TYPES.ADMIN) {
@@ -1161,14 +1218,87 @@ function handleDisconnect(clientId) {
 function cleanupInactiveSessions() {
     const now = Date.now();
     const timeout = 10 * 60 * 1000; // 10분
+    const sessionsToClean = [];
     
+    // 1단계: 정리할 세션들 수집
     for (const [sessionCode, session] of sessions.entries()) {
         if (now - session.lastActivity > timeout) {
-            console.log(`🧹 비활성 세션 정리: ${sessionCode}`);
-            session.cleanup();
-            sessions.delete(sessionCode);
-            usedSessionCodes.delete(sessionCode);
+            sessionsToClean.push(sessionCode);
         }
+    }
+    
+    // 2단계: 배치로 정리 (안전하게)
+    sessionsToClean.forEach(sessionCode => {
+        cleanupSession(sessionCode);
+    });
+    
+    if (sessionsToClean.length > 0) {
+        console.log(`🧹 총 ${sessionsToClean.length}개 비활성 세션 정리 완료`);
+    }
+    
+    // 3단계: 만료된 세션 코드도 정리
+    cleanupExpiredCodes();
+}
+
+/**
+ * 안전한 세션 정리 (연관된 모든 리소스 정리)
+ */
+function cleanupSession(sessionCode) {
+    const session = sessions.get(sessionCode);
+    if (!session) return;
+    
+    console.log(`🧹 세션 정리 시작: ${sessionCode}`);
+    
+    try {
+        // 1. 연결된 모든 클라이언트에 세션 종료 알림
+        const allClientIds = [
+            session.pcClientId,
+            ...session.sensorClients.values()
+        ].filter(Boolean);
+        
+        allClientIds.forEach(clientId => {
+            const client = clients.get(clientId);
+            if (client && client.isConnected()) {
+                try {
+                    client.send({
+                        type: 'session_ended',
+                        reason: 'Session cleanup due to inactivity',
+                        sessionCode: sessionCode
+                    });
+                } catch (error) {
+                    console.warn(`⚠️ 클라이언트 알림 실패 (${clientId}):`, error);
+                }
+            }
+        });
+        
+        // 2. 연관된 룸에서 제거
+        if (session.roomId) {
+            const room = rooms.get(session.roomId);
+            if (room) {
+                try {
+                    room.removePlayer(session.sessionId);
+                    if (room.isEmpty()) {
+                        console.log(`🧹 빈 룸 정리: ${session.roomId}`);
+                        room.cleanup();
+                        rooms.delete(session.roomId);
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ 룸 정리 실패 (${session.roomId}):`, error);
+                }
+            }
+        }
+        
+        // 3. 세션 정리
+        session.cleanup();
+        sessions.delete(sessionCode);
+        
+        // 4. 최근 사용 코드에서도 제거 (30분 후 재사용 허용)
+        recentlyUsedCodes.delete(sessionCode);
+        
+        console.log(`✅ 세션 정리 완료: ${sessionCode}`);
+        
+    } catch (error) {
+        console.error(`❌ 세션 정리 중 오류 (${sessionCode}):`, error);
     }
 }
 

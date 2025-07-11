@@ -238,24 +238,52 @@ class SensorGameSDK {
     }
     
     /**
-     * 저장된 세션 데이터 가져오기
+     * 저장된 세션 데이터 가져오기 (만료 확인 포함)
      */
     getStoredSessionData() {
         try {
             const stored = localStorage.getItem('sgh_session');
-            return stored ? JSON.parse(stored) : null;
+            if (!stored) return null;
+            
+            const data = JSON.parse(stored);
+            
+            // 만료 확인
+            if (data.expiresAt && Date.now() > data.expiresAt) {
+                console.log('⏰ 저장된 세션 만료됨');
+                this.clearStoredSessionData();
+                return null;
+            }
+            
+            return data;
         } catch (error) {
             console.warn('⚠️ 세션 데이터 파싱 실패:', error);
+            this.clearStoredSessionData();
             return null;
         }
     }
     
     /**
-     * 세션 데이터 저장
+     * 세션 데이터 삭제
+     */
+    clearStoredSessionData() {
+        try {
+            localStorage.removeItem('sgh_session');
+            console.log('🗑️ 저장된 세션 데이터 삭제됨');
+        } catch (error) {
+            console.warn('⚠️ 세션 데이터 삭제 실패:', error);
+        }
+    }
+    
+    /**
+     * 세션 데이터 저장 (만료 시간 포함)
      */
     storeSessionData(sessionData) {
         try {
-            localStorage.setItem('sgh_session', JSON.stringify(sessionData));
+            const dataWithExpiry = {
+                ...sessionData,
+                expiresAt: Date.now() + (60 * 60 * 1000) // 1시간 만료
+            };
+            localStorage.setItem('sgh_session', JSON.stringify(dataWithExpiry));
             console.log('💾 세션 데이터 저장됨:', sessionData.sessionCode);
         } catch (error) {
             console.warn('⚠️ 세션 데이터 저장 실패:', error);
@@ -301,6 +329,9 @@ class SensorGameSDK {
                 break;
             case 'error':
                 this.handleError(message);
+                break;
+            case 'session_ended':
+                this.handleSessionEnded(message);
                 break;
             default:
                 console.warn('⚠️ 알 수 없는 메시지 타입:', message.type);
@@ -472,6 +503,31 @@ class SensorGameSDK {
         
         if (typeof this.onError === 'function') {
             this.onError(message);
+        }
+    }
+    
+    /**
+     * 세션 종료 처리
+     */
+    handleSessionEnded(message) {
+        console.log('🔚 세션 종료됨:', message.reason);
+        
+        // 로컬 스토리지 정리
+        this.clearStoredSessionData();
+        
+        // 상태 초기화
+        this.state.sessionCode = null;
+        this.state.sessionId = null;
+        this.state.sensorConnected = false;
+        
+        this.emit('session_ended', {
+            reason: message.reason,
+            sessionCode: message.sessionCode
+        });
+        
+        // 게임별 세션 종료 콜백
+        if (typeof this.onSessionEnded === 'function') {
+            this.onSessionEnded(message);
         }
     }
     
