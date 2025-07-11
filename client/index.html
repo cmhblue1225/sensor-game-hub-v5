@@ -352,6 +352,15 @@
             }
         }
         
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
         /* 반응형 */
         @media (max-width: 768px) {
             .container {
@@ -524,99 +533,294 @@
                 console.log('✅ DeviceSelector 이벤트 리스너 설정 완료');
             }
             
-            // QR 코드 생성 (Google Charts API 사용)
+            // QR 코드 생성 (개선된 버전)
             generateQRCode() {
                 const sensorUrl = `${this.currentUrl}/sensor`;
-                const canvas = document.getElementById('qrCode');
+                console.log('🔄 QR 코드 생성 시작:', sensorUrl);
                 
-                // Google Charts QR API를 사용한 이미지 생성
+                // 로딩 상태 표시
+                this.showQRLoadingState();
+                
                 try {
-                    this.generateQRCodeWithGoogle(sensorUrl);
+                    this.generateQRCodeWithAPIs(sensorUrl);
                 } catch (error) {
-                    console.error('Google QR 코드 생성 실패:', error);
+                    console.error('❌ QR 코드 생성 실패:', error);
                     this.generateQRCodeFallback(sensorUrl);
                 }
                 
                 document.getElementById('currentUrl').textContent = sensorUrl;
             }
             
-            // Google Charts API로 QR 코드 생성
-            generateQRCodeWithGoogle(sensorUrl) {
+            // QR 로딩 상태 표시
+            showQRLoadingState() {
                 const qrContainer = document.querySelector('.qr-container');
                 const canvas = document.getElementById('qrCode');
                 
-                // 기존 캔버스 숨기기
+                // 기존 내용 정리
+                qrContainer.querySelectorAll('img, .qr-loading').forEach(el => el.remove());
                 canvas.style.display = 'none';
                 
-                // QR 코드 이미지 생성
-                const img = document.createElement('img');
-                const encodedUrl = encodeURIComponent(sensorUrl);
-                img.src = `https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=${encodedUrl}&choe=UTF-8`;
-                img.alt = 'QR Code for Sensor Connection';
-                img.className = 'qr-code';
-                img.style.width = '150px';
-                img.style.height = '150px';
+                // 로딩 스피너 추가
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'qr-loading';
+                loadingDiv.style.cssText = `
+                    width: 150px;
+                    height: 150px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(59, 130, 246, 0.1);
+                    border: 2px dashed var(--primary);
+                    border-radius: 8px;
+                    color: var(--primary);
+                `;
                 
-                // 기존 이미지가 있다면 제거
-                const existingImg = qrContainer.querySelector('img');
-                if (existingImg) {
-                    existingImg.remove();
-                }
+                loadingDiv.innerHTML = `
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem; animation: spin 2s linear infinite;">⚡</div>
+                    <div style="font-size: 0.8rem; font-weight: 600;">QR 코드 생성 중...</div>
+                `;
                 
-                // 이미지 로드 확인
-                img.onload = () => {
-                    console.log('✅ Google Charts QR 코드 생성 완료');
-                };
-                
-                img.onerror = () => {
-                    console.warn('Google Charts QR 코드 로드 실패, 대체 방법 사용');
-                    img.remove();
-                    canvas.style.display = 'block';
-                    this.generateQRCodeFallback(sensorUrl);
-                };
-                
-                // 캔버스 앞에 이미지 추가
-                qrContainer.insertBefore(img, canvas);
+                qrContainer.appendChild(loadingDiv);
             }
             
-            // QR 코드 대체 방법 (더 예쁘게)
-            generateQRCodeFallback(sensorUrl) {
+            // 여러 QR API 시도
+            generateQRCodeWithAPIs(sensorUrl) {
+                const qrContainer = document.querySelector('.qr-container');
                 const canvas = document.getElementById('qrCode');
-                const ctx = canvas.getContext('2d');
                 
-                // 캔버스 크기 설정
+                // 로딩 제거
+                setTimeout(() => {
+                    const loadingDiv = qrContainer.querySelector('.qr-loading');
+                    if (loadingDiv) {
+                        loadingDiv.remove();
+                    }
+                }, 1000);
+                
+                // 여러 QR API 시도
+                this.tryQRAPIs(sensorUrl, qrContainer, canvas);
+            }
+            
+            // 여러 QR API를 순차적으로 시도 (개선된 버전)
+            tryQRAPIs(sensorUrl, container, canvas) {
+                const apis = [
+                    // 다양한 QR API들 (CORS 문제 없는 것들)
+                    {
+                        name: 'QR Server',
+                        url: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(sensorUrl)}&format=png&margin=10`
+                    },
+                    {
+                        name: 'QuickChart',
+                        url: `https://quickchart.io/qr?text=${encodeURIComponent(sensorUrl)}&size=150&format=png&margin=1`
+                    },
+                    {
+                        name: 'QR API',
+                        url: `https://qrapi.io/qr?size=150x150&text=${encodeURIComponent(sensorUrl)}&format=png&margin=0`
+                    },
+                    {
+                        name: 'Google Charts',
+                        url: `https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=${encodeURIComponent(sensorUrl)}&choe=UTF-8&chld=M|0`
+                    }
+                ];
+                
+                let currentIndex = 0;
+                let timeoutId = null;
+                
+                const tryNextAPI = () => {
+                    if (currentIndex >= apis.length) {
+                        console.warn('🚫 모든 QR API 실패, 향상된 대체 UI 사용');
+                        this.generateEnhancedFallback(sensorUrl, container, canvas);
+                        return;
+                    }
+                    
+                    const api = apis[currentIndex];
+                    console.log(`🔄 QR API 시도 ${currentIndex + 1}/${apis.length}: ${api.name}`);
+                    
+                    const img = new Image();
+                    img.alt = 'QR Code for Sensor Connection';
+                    img.className = 'qr-code';
+                    img.style.cssText = `
+                        width: 150px;
+                        height: 150px;
+                        border-radius: 8px;
+                        border: 2px solid #3b82f6;
+                        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                        transition: all 0.3s ease;
+                    `;
+                    
+                    // 타임아웃 설정 (3초로 단축)
+                    timeoutId = setTimeout(() => {
+                        console.warn(`⏰ QR API ${api.name} 타임아웃`);
+                        handleError();
+                    }, 3000);
+                    
+                    const handleSuccess = () => {
+                        clearTimeout(timeoutId);
+                        console.log(`✅ QR 코드 생성 완료: ${api.name}`);
+                        
+                        // 로딩 및 기존 이미지들 제거
+                        container.querySelectorAll('img, .qr-loading').forEach(oldEl => oldEl.remove());
+                        
+                        // 새 이미지 추가
+                        container.insertBefore(img, canvas);
+                        
+                        // 성공 효과 (더 부드럽게)
+                        img.style.opacity = '0';
+                        img.style.transform = 'scale(0.8)';
+                        
+                        requestAnimationFrame(() => {
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1)';
+                        });
+                    };
+                    
+                    const handleError = () => {
+                        clearTimeout(timeoutId);
+                        console.warn(`❌ QR API ${api.name} 실패`);
+                        img.remove();
+                        currentIndex++;
+                        setTimeout(tryNextAPI, 500); // 0.5초 후 다음 시도
+                    };
+                    
+                    img.onload = handleSuccess;
+                    img.onerror = handleError;
+                    
+                    // 이미지 로드 시작 (CORS 문제 방지를 위해 crossOrigin 제거)
+                    img.src = api.url;
+                };
+                
+                tryNextAPI();
+            }
+            
+            // 향상된 대체 UI (API 실패 시)
+            generateEnhancedFallback(sensorUrl, container, canvas) {
+                console.log('🎨 향상된 대체 UI 생성 중...');
+                
+                // 캔버스 설정
                 canvas.width = 150;
                 canvas.height = 150;
                 canvas.style.display = 'block';
+                const ctx = canvas.getContext('2d');
                 
-                // 배경
-                ctx.fillStyle = '#f8fafc';
+                // 3D 스타일 그라디언트 배경
+                const gradient = ctx.createRadialGradient(75, 75, 20, 75, 75, 75);
+                gradient.addColorStop(0, '#60a5fa');
+                gradient.addColorStop(0.6, '#3b82f6');
+                gradient.addColorStop(1, '#1d4ed8');
+                ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, 150, 150);
                 
-                // 테두리
-                ctx.strokeStyle = '#1e293b';
+                // 테두리 효과
+                ctx.strokeStyle = '#1e40af';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(5, 5, 140, 140);
+                ctx.strokeRect(1, 1, 148, 148);
                 
-                // 아이콘
+                // 내부 흰색 배경 (둥근 모서리 효과)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(15, 15, 120, 120);
+                
+                // 그림자 효과
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.fillRect(17, 17, 120, 120);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(15, 15, 118, 118);
+                
+                // 메인 아이콘 (더 크고 생동감 있게)
                 ctx.fillStyle = '#3b82f6';
-                ctx.font = 'bold 24px Arial';
+                ctx.font = 'bold 48px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('📱', 75, 50);
+                ctx.textBaseline = 'middle';
+                ctx.fillText('📱', 75, 55);
                 
-                // 텍스트
+                // 메인 텍스트
                 ctx.fillStyle = '#1e293b';
                 ctx.font = 'bold 12px Arial';
-                ctx.fillText('모바일에서', 75, 75);
-                ctx.fillText('아래 URL로', 75, 95);
-                ctx.fillText('직접 접속하세요', 75, 115);
+                ctx.fillText('센서 연결', 75, 85);
                 
-                // 포인터
-                ctx.fillStyle = '#8b5cf6';
-                ctx.font = '16px Arial';
-                ctx.fillText('👇', 75, 135);
+                // 서브 텍스트
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '10px Arial';
+                ctx.fillText('아래 링크로 접속하세요', 75, 105);
                 
-                console.log('✅ QR 코드 대체 UI 생성 완료');
+                // 화살표 아이콘
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('⬇️', 75, 125);
+                
+                // 장식용 QR 패턴 (모던한 스타일)
+                ctx.fillStyle = '#e5e7eb';
+                const patterns = [
+                    [20, 20], [25, 20], [30, 20],
+                    [20, 25], [30, 25],
+                    [20, 30], [25, 30], [30, 30],
+                    
+                    [120, 20], [125, 20], [130, 20],
+                    [120, 25], [130, 25],
+                    [120, 30], [125, 30], [130, 30],
+                    
+                    [20, 120], [25, 120], [30, 120],
+                    [20, 125], [30, 125],
+                    [20, 130], [25, 130], [30, 130]
+                ];
+                
+                patterns.forEach(([x, y]) => {
+                    ctx.fillRect(x, y, 4, 4);
+                });
+                
+                // 애니메이션 효과
+                canvas.style.opacity = '0';
+                canvas.style.transform = 'scale(0.9)';
+                canvas.style.transition = 'all 0.5s ease';
+                
+                setTimeout(() => {
+                    canvas.style.opacity = '1';
+                    canvas.style.transform = 'scale(1)';
+                }, 100);
+                
+                // 추가 안내 메시지 업데이트
+                this.showQRFallbackMessage(sensorUrl);
+                
+                console.log('✅ 향상된 대체 UI 생성 완료');
+            }
+            
+            // 대체 UI 사용 시 추가 안내 메시지
+            showQRFallbackMessage(sensorUrl) {
+                const qrSection = document.querySelector('.qr-section');
+                const existingMsg = qrSection.querySelector('.qr-fallback-message');
+                
+                if (existingMsg) {
+                    existingMsg.remove();
+                }
+                
+                const message = document.createElement('div');
+                message.className = 'qr-fallback-message';
+                message.style.cssText = `
+                    margin-top: 1rem;
+                    padding: 1rem;
+                    background: rgba(59, 130, 246, 0.1);
+                    border: 1px solid rgba(59, 130, 246, 0.2);
+                    border-radius: 0.5rem;
+                    text-align: center;
+                `;
+                
+                message.innerHTML = `
+                    <div style="color: var(--primary); font-weight: 600; margin-bottom: 0.5rem;">
+                        📱 QR 코드 생성 중 문제가 발생했습니다
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                        아래 링크를 직접 복사하여 모바일에서 접속해주세요
+                    </div>
+                `;
+                
+                qrSection.appendChild(message);
+            }
+            
+            // QR 코드 대체 방법 (하위 호환성)
+            generateQRCodeFallback(sensorUrl) {
+                // 새로운 향상된 버전으로 리다이렉트
+                const container = document.querySelector('.qr-container');
+                const canvas = document.getElementById('qrCode');
+                this.generateEnhancedFallback(sensorUrl, container, canvas);
             }
             
             // URL 업데이트
