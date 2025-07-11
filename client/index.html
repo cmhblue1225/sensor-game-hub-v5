@@ -378,7 +378,7 @@
         }
     </style>
     <!-- QR 코드 생성 라이브러리 -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
     <div class="background"></div>
@@ -402,7 +402,7 @@
         <!-- 기기 선택 -->
         <section class="device-selector">
             <!-- PC 카드 -->
-            <div class="device-card pc" onclick="selectDevice('pc')">
+            <div class="device-card pc" data-device="pc">
                 <div class="recommended">추천</div>
                 <span class="device-icon">🖥️</span>
                 <h2 class="device-title">PC로 시작하기</h2>
@@ -419,7 +419,7 @@
             </div>
             
             <!-- 모바일 카드 -->
-            <div class="device-card mobile" onclick="selectDevice('mobile')">
+            <div class="device-card mobile" data-device="mobile">
                 <span class="device-icon">📱</span>
                 <h2 class="device-title">모바일로 시작하기</h2>
                 <p class="device-description">
@@ -469,6 +469,21 @@
                 this.updateURL();
                 this.checkAutoRedirect();
                 this.detectDevice();
+                this.setupEventListeners();
+            }
+            
+            // 이벤트 리스너 설정
+            setupEventListeners() {
+                document.querySelectorAll('.device-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const device = card.getAttribute('data-device');
+                        console.log(`📱 기기 카드 클릭: ${device}`);
+                        this.selectDevice(device);
+                    });
+                });
+                
+                console.log('✅ DeviceSelector 이벤트 리스너 설정 완료');
             }
             
             // QR 코드 생성
@@ -476,22 +491,58 @@
                 const sensorUrl = `${this.currentUrl}/sensor`;
                 const canvas = document.getElementById('qrCode');
                 
-                QRCode.toCanvas(canvas, sensorUrl, {
-                    width: 150,
-                    margin: 2,
-                    color: {
-                        dark: '#1e293b',
-                        light: '#ffffff'
-                    }
-                }, (error) => {
-                    if (error) {
-                        console.error('QR 코드 생성 실패:', error);
-                    } else {
-                        console.log('✅ QR 코드 생성 완료');
-                    }
-                });
+                // QRCode 라이브러리 로드 확인
+                if (typeof QRCode === 'undefined') {
+                    console.warn('QRCode 라이브러리가 로드되지 않음, 대체 방법 사용');
+                    this.generateQRCodeFallback(sensorUrl);
+                    return;
+                }
+                
+                try {
+                    QRCode.toCanvas(canvas, sensorUrl, {
+                        width: 150,
+                        margin: 2,
+                        color: {
+                            dark: '#1e293b',
+                            light: '#ffffff'
+                        }
+                    }, (error) => {
+                        if (error) {
+                            console.error('QR 코드 생성 실패:', error);
+                            this.generateQRCodeFallback(sensorUrl);
+                        } else {
+                            console.log('✅ QR 코드 생성 완료');
+                        }
+                    });
+                } catch (error) {
+                    console.error('QR 코드 생성 중 오류:', error);
+                    this.generateQRCodeFallback(sensorUrl);
+                }
                 
                 document.getElementById('currentUrl').textContent = sensorUrl;
+            }
+            
+            // QR 코드 대체 방법
+            generateQRCodeFallback(sensorUrl) {
+                const canvas = document.getElementById('qrCode');
+                const ctx = canvas.getContext('2d');
+                
+                // 간단한 대체 UI
+                canvas.width = 150;
+                canvas.height = 150;
+                
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, 0, 150, 150);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('📱', 75, 60);
+                ctx.fillText('QR 코드', 75, 80);
+                ctx.fillText('대신 URL을', 75, 100);
+                ctx.fillText('직접 입력하세요', 75, 120);
+                
+                console.log('QR 코드 대체 UI 생성 완료');
             }
             
             // URL 업데이트
@@ -581,7 +632,17 @@
         
         // 전역 함수들
         function selectDevice(device) {
-            window.deviceSelector.selectDevice(device);
+            if (window.deviceSelector) {
+                window.deviceSelector.selectDevice(device);
+            } else {
+                console.error('DeviceSelector가 초기화되지 않음');
+                // 직접 페이지 이동
+                if (device === 'pc') {
+                    window.location.href = '/hub';
+                } else if (device === 'mobile') {
+                    window.location.href = '/sensor';
+                }
+            }
         }
         
         function toggleTheme() {
@@ -605,17 +666,44 @@
         }
         
         // 초기화
-        document.addEventListener('DOMContentLoaded', () => {
-            window.deviceSelector = new DeviceSelector();
-            
-            // 저장된 테마 적용
-            const savedTheme = localStorage.getItem('sgh_theme');
-            if (savedTheme === 'light') {
-                toggleTheme();
+        function initializePage() {
+            try {
+                console.log('🚀 페이지 초기화 시작');
+                
+                // DeviceSelector 초기화
+                window.deviceSelector = new DeviceSelector();
+                console.log('✅ DeviceSelector 초기화 완료');
+                
+                // 저장된 테마 적용
+                const savedTheme = localStorage.getItem('sgh_theme');
+                if (savedTheme === 'light') {
+                    toggleTheme();
+                }
+                
+                console.log('🚀 기기 선택 페이지 로드 완료');
+            } catch (error) {
+                console.error('❌ 페이지 초기화 실패:', error);
+                
+                // 기본 동작 보장 - 이벤트 리스너 추가
+                document.querySelectorAll('.device-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        const device = this.getAttribute('data-device');
+                        console.log(`📱 기기 카드 클릭: ${device}`);
+                        selectDevice(device);
+                    });
+                });
+                
+                console.log('✅ 기본 이벤트 리스너 설정 완료');
             }
-            
-            console.log('🚀 기기 선택 페이지 로드 완료');
-        });
+        }
+        
+        // DOM이 로드된 후 초기화
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            // 이미 로드된 경우 즉시 실행
+            initializePage();
+        }
         
         // 키보드 단축키
         document.addEventListener('keydown', (e) => {
