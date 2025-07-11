@@ -943,6 +943,7 @@
                             gamma: event.gamma || 0
                         };
                         
+                        console.log('🧭 방향 센서 데이터 수집:', this.sensorData.orientation);
                         this.updateOrientationDisplay();
                         this.sensors.orientation.active = true;
                     }
@@ -966,6 +967,7 @@
                             z: event.acceleration.z || 0
                         };
                         
+                        console.log('📐 가속도계 데이터 수집:', this.sensorData.accelerometer);
                         this.updateAccelerometerDisplay();
                         this.sensors.accelerometer.active = true;
                     }
@@ -977,6 +979,8 @@
                             y: event.rotationRate.beta || 0,
                             z: event.rotationRate.gamma || 0
                         };
+                        
+                        console.log('🌀 자이로스코프 데이터 수집:', this.sensorData.gyroscope);
                         
                         this.updateGyroscopeDisplay();
                         this.sensors.gyroscope.active = true;
@@ -1056,14 +1060,19 @@
                     gyroscope: this.sensorData.gyroscope
                 };
                 
-                console.log('📤 센서 데이터 전송:', correctedData);
-                
-                this.send({
-                    type: 'sensor_data',
-                    sensorId: this.sensorId,
-                    data: correctedData,
-                    timestamp: Date.now()
-                });
+                // 최소한의 데이터가 있을 때만 전송
+                if (this.sensorData.orientation.alpha !== 0 || this.sensorData.accelerometer.x !== 0) {
+                    console.log('📤 센서 데이터 전송:', correctedData);
+                    
+                    this.send({
+                        type: 'sensor_data',
+                        sensorId: this.sensorId,
+                        data: correctedData,
+                        timestamp: Date.now()
+                    });
+                } else {
+                    console.log('⚠️ 센서 데이터가 없어서 전송하지 않음');
+                }
             }
             
             /**
