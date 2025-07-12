@@ -1,8 +1,10 @@
 /**
- * 🎮 듀얼 센서 테스트 게임 (완전 재설계)
+ * 🎮 듀얼 센서 테스트 게임
  * 
- * 새로운 서버 및 SDK와 완벽 호환
- * 두 개의 센서로 두 개의 공을 조종하는 협동 게임
+ * 두 개의 센서를 동시에 사용하여 협조 플레이를 하는 게임
+ * - 센서 1: 파란색 공 조종
+ * - 센서 2: 빨간색 공 조종
+ * - 목표: 두 공을 목표 지점에 동시에 도달시키기
  */
 
 class DualSensorTestGame extends SensorGameSDK {
@@ -14,99 +16,95 @@ class DualSensorTestGame extends SensorGameSDK {
             sensorTypes: ['orientation', 'accelerometer', 'gyroscope'],
             sensorConfig: {
                 smoothing: 0.8,
-                sensitivity: 1.2,
+                sensitivity: 1.0,
                 deadzone: 0.1,
                 shakeThreshold: 15
+            },
+            dualSensorConfig: {
+                requiresBothSensors: true,
+                sensor1Label: '센서 1 (파란공)',
+                sensor2Label: '센서 2 (빨간공)'
             }
         });
         
-        // 게임 캔버스 및 렌더링
+        // 게임 요소들
         this.canvas = null;
         this.ctx = null;
         this.gameLoop = null;
         
-        // 센서 상태 추적
-        this.sensorConnections = {
-            sensor1: false,
-            sensor2: false
+        // 센서 상태 관리
+        this.sensor1Connected = false;
+        this.sensor2Connected = false;
+        this.sensorData = {
+            sensor1: null,
+            sensor2: null
         };
         
-        // 두 개의 공 (센서별로 조종)
+        // 게임 오브젝트들
         this.balls = {
             sensor1: {
                 x: 0,
                 y: 0,
                 vx: 0,
                 vy: 0,
-                radius: 25,
-                color: '#3b82f6', // 파란색
+                radius: 20,
+                color: '#3b82f6',
                 trail: [],
-                isAtTarget: false,
-                lastSensorData: null
+                isAtTarget: false
             },
             sensor2: {
                 x: 0,
                 y: 0,
                 vx: 0,
                 vy: 0,
-                radius: 25,
-                color: '#ef4444', // 빨간색
+                radius: 20,
+                color: '#ef4444',
                 trail: [],
-                isAtTarget: false,
-                lastSensorData: null
+                isAtTarget: false
             }
         };
         
-        // 목표 지점
         this.target = {
             x: 0,
             y: 0,
-            radius: 50,
+            radius: 40,
             pulseSize: 0,
-            pulseDirection: 1,
-            color: '#10b981'
+            pulseDirection: 1
         };
         
-        // 파티클 시스템
         this.particles = [];
-        
-        // 게임 상태
+        this.backgroundHue = 220;
         this.score = 0;
         this.missionCount = 0;
-        this.gameStarted = false;
-        this.backgroundHue = 220;
         
         // 게임 설정
         this.config = {
-            ballSpeed: 8,
-            friction: 0.92,
-            bounceStrength: 0.7,
-            targetTolerance: 40,
-            trailLength: 20,
-            particleCount: 10,
+            ballSpeed: 6,
+            friction: 0.94,
+            bounceStrength: 0.6,
+            particleCount: 12,
             particleLifetime: 60,
+            trailLength: 15,
+            targetTolerance: 30, // 목표 도달 허용 거리
             scorePerMission: 100,
-            targetPulseSpeed: 0.05
+            targetPulseSpeed: 0.1
         };
         
-        this.initialize();
+        this.initializeGame();
     }
     
     /**
      * 게임 초기화
      */
-    initialize() {
-        console.log('🎮 듀얼 센서 테스트 게임 초기화 중...');
+    initializeGame() {
+        console.log('🎮 듀얼 센서 테스트 게임 초기화');
         
         this.setupCanvas();
         this.setupEventListeners();
-        this.resetBallPositions();
         this.generateNewTarget();
         
         // 초기 UI 상태
-        this.updateGameStatus('세션 및 센서 연결 대기 중...');
-        
-        console.log('✅ 듀얼 센서 테스트 게임 초기화 완료');
+        this.updateGameStatus('세션 생성 대기');
     }
     
     /**
@@ -133,10 +131,50 @@ class DualSensorTestGame extends SensorGameSDK {
         this.canvas.style.width = window.innerWidth + 'px';
         this.canvas.style.height = window.innerHeight + 'px';
         
-        // 공 위치 재조정
-        if (!this.gameStarted) {
+        // 볼 초기 위치 설정
+        if (this.balls.sensor1.x === 0 && this.balls.sensor1.y === 0) {
             this.resetBallPositions();
         }
+    }
+    
+    /**
+     * 볼 위치 초기화
+     */
+    resetBallPositions() {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        
+        // 센서 1 볼 (왼쪽)
+        this.balls.sensor1.x = centerX - 100;
+        this.balls.sensor1.y = centerY;
+        this.balls.sensor1.vx = 0;
+        this.balls.sensor1.vy = 0;
+        this.balls.sensor1.trail = [];
+        this.balls.sensor1.isAtTarget = false;
+        
+        // 센서 2 볼 (오른쪽)
+        this.balls.sensor2.x = centerX + 100;
+        this.balls.sensor2.y = centerY;
+        this.balls.sensor2.vx = 0;
+        this.balls.sensor2.vy = 0;
+        this.balls.sensor2.trail = [];
+        this.balls.sensor2.isAtTarget = false;
+    }
+    
+    /**
+     * 새 목표 지점 생성
+     */
+    generateNewTarget() {
+        const margin = 80;
+        this.target.x = margin + Math.random() * (window.innerWidth - 2 * margin);
+        this.target.y = margin + Math.random() * (window.innerHeight - 2 * margin);
+        this.target.pulseSize = 0;
+        
+        // 볼들의 목표 도달 상태 초기화
+        this.balls.sensor1.isAtTarget = false;
+        this.balls.sensor2.isAtTarget = false;
+        
+        this.updateTargetIndicators();
     }
     
     /**
@@ -151,14 +189,7 @@ class DualSensorTestGame extends SensorGameSDK {
                     break;
                 case ' ':
                     e.preventDefault();
-                    if (this.gameStarted) {
-                        this.generateNewTarget();
-                    }
-                    break;
-                case 's':
-                case 'S':
-                    // 센서 데이터 시뮬레이션 (테스트용)
-                    this.simulateSensorData();
+                    this.generateNewTarget();
                     break;
             }
         });
@@ -167,7 +198,7 @@ class DualSensorTestGame extends SensorGameSDK {
     // ========== SDK 콜백 메서드들 ==========
     
     /**
-     * SDK 초기화 완료
+     * SDK 준비 완료
      */
     onInit() {
         console.log('✅ SDK 초기화 완료');
@@ -175,86 +206,82 @@ class DualSensorTestGame extends SensorGameSDK {
     }
     
     /**
-     * 세션 생성 완료
+     * 세션 생성됨
      */
     onSessionCreated(data) {
-        console.log('🔑 듀얼 센서 세션 생성됨:', data.sessionCode);
-        this.updateGameStatus(`세션 ${data.sessionCode} 생성됨. 두 개의 센서를 연결하세요.`);
+        console.log('🔑 세션 생성됨:', data.sessionCode);
+        this.updateGameStatus(`세션 코드: ${data.sessionCode}`);
         this.hideInstructionPanel();
     }
     
     /**
-     * 센서 연결됨
+     * 센서 연결됨 (듀얼 센서 지원)
      */
     onSensorConnected(data) {
         console.log('📱 센서 연결됨:', data);
         
-        // 센서 ID 추출 및 상태 업데이트
-        if (data.sensorId && data.sensorId.includes('1')) {
-            this.sensorConnections.sensor1 = true;
+        // 센서 ID로 구분
+        if (data.sensorId === 'sensor1') {
+            this.sensor1Connected = true;
             this.updateSensorStatus('sensor1', true);
-            console.log('✅ 센서 1 연결됨');
-        } else if (data.sensorId && data.sensorId.includes('2')) {
-            this.sensorConnections.sensor2 = true;
+            console.log('📱 센서 1 연결됨');
+        } else if (data.sensorId === 'sensor2') {
+            this.sensor2Connected = true;
             this.updateSensorStatus('sensor2', true);
-            console.log('✅ 센서 2 연결됨');
+            console.log('📱 센서 2 연결됨');
         }
         
-        // 연결된 센서 수 확인
-        const connectedCount = Object.values(this.sensorConnections).filter(Boolean).length;
-        
-        if (connectedCount === 1) {
-            this.updateGameStatus('센서 1개 연결됨. 추가 센서를 연결하세요.');
-        } else if (connectedCount === 2) {
-            this.updateGameStatus('두 센서 모두 연결됨! 게임을 시작합니다.');
+        // 두 센서가 모두 연결되면 게임 시작
+        if (this.sensor1Connected && this.sensor2Connected) {
             this.startGame();
+        } else {
+            this.updateGameStatus('추가 센서 연결 대기 중...');
         }
     }
     
     /**
-     * 듀얼 센서 준비 완료
+     * 센서 연결 해제됨
      */
-    onDualSensorReady(data) {
-        console.log('🎮 듀얼 센서 준비 완료:', data);
-        this.updateGameStatus('듀얼 센서 준비 완료! 게임을 시작합니다.');
-        this.startGame();
+    onSensorDisconnected(data) {
+        console.log('📱 센서 연결 해제됨:', data);
+        
+        if (data.sensorId === 'sensor1') {
+            this.sensor1Connected = false;
+            this.updateSensorStatus('sensor1', false);
+        } else if (data.sensorId === 'sensor2') {
+            this.sensor2Connected = false;
+            this.updateSensorStatus('sensor2', false);
+        }
+        
+        this.updateGameStatus('센서 재연결 대기 중...');
     }
     
     /**
-     * 센서 데이터 수신
+     * 센서 데이터 수신 (듀얼 센서)
      */
     onSensorData(processedData, rawData, sensorId) {
-        if (!this.gameStarted) return;
+        if (this.state.gameStatus !== 'playing') return;
         
-        console.log(`🎮 센서 데이터 수신: ${sensorId}`, processedData);
+        // 센서별 데이터 저장
+        this.sensorData[sensorId] = processedData;
         
-        // 센서 ID에 따라 공 업데이트
-        if (sensorId && sensorId.includes('1')) {
+        // 해당 센서의 볼 업데이트
+        if (sensorId === 'sensor1') {
             this.updateBall('sensor1', processedData);
-            this.balls.sensor1.lastSensorData = processedData;
-        } else if (sensorId && sensorId.includes('2')) {
+        } else if (sensorId === 'sensor2') {
             this.updateBall('sensor2', processedData);
-            this.balls.sensor2.lastSensorData = processedData;
         }
         
         // 목표 도달 확인
-        this.checkMissionComplete();
+        this.checkTargetReached();
     }
     
     /**
-     * 게임 시작 알림
-     */
-    onGameStart(data) {
-        console.log('🎮 게임 시작 알림:', data);
-        this.startGame();
-    }
-    
-    /**
-     * 오류 처리
+     * 오류 발생
      */
     onError(error) {
-        console.error('❌ 게임 오류:', error);
-        this.updateGameStatus(`오류: ${error.error || error.message}`);
+        console.error('❌ 게임 오류:', error.message);
+        this.updateGameStatus(`오류: ${error.message}`);
     }
     
     // ========== 게임 로직 ==========
@@ -263,18 +290,15 @@ class DualSensorTestGame extends SensorGameSDK {
      * 게임 시작
      */
     startGame() {
-        if (this.gameStarted) return;
+        if (this.gameLoop) {
+            cancelAnimationFrame(this.gameLoop);
+        }
         
-        this.gameStarted = true;
         this.state.gameStatus = 'playing';
-        
-        // UI 표시
         this.showGameUI();
-        
-        // 게임 루프 시작
         this.startGameLoop();
         
-        this.updateGameStatus('게임 진행 중 - 두 공을 목표에 도달시키세요!');
+        this.updateGameStatus('게임 진행 중');
         console.log('🎮 듀얼 센서 게임 시작!');
     }
     
@@ -283,7 +307,7 @@ class DualSensorTestGame extends SensorGameSDK {
      */
     startGameLoop() {
         const loop = () => {
-            if (this.gameStarted && this.state.gameStatus === 'playing') {
+            if (this.state.gameStatus === 'playing') {
                 this.update();
                 this.render();
                 this.gameLoop = requestAnimationFrame(loop);
@@ -297,28 +321,25 @@ class DualSensorTestGame extends SensorGameSDK {
      * 게임 업데이트
      */
     update() {
-        // 물리 업데이트
+        // 볼 물리 업데이트
         this.updateBallPhysics('sensor1');
         this.updateBallPhysics('sensor2');
-        
-        // 궤적 업데이트
-        this.updateBallTrails();
         
         // 파티클 업데이트
         this.updateParticles();
         
-        // 목표 펄스 애니메이션
+        // 목표 펄스 애니메이션 업데이트
         this.updateTargetPulse();
         
-        // 배경색 변화
-        this.updateBackgroundColor();
+        // 볼 궤적 업데이트
+        this.updateBallTrails();
     }
     
     /**
-     * 공 업데이트 (센서 데이터 기반)
+     * 볼 업데이트 (센서 데이터 기반)
      */
-    updateBall(ballId, sensorData) {
-        const ball = this.balls[ballId];
+    updateBall(sensorId, sensorData) {
+        const ball = this.balls[sensorId];
         if (!ball) return;
         
         // 기울기를 속도로 변환
@@ -326,21 +347,21 @@ class DualSensorTestGame extends SensorGameSDK {
         ball.vy += sensorData.tilt.y * this.config.ballSpeed;
         
         // 최대 속도 제한
-        const maxSpeed = 15;
+        const maxSpeed = 12;
         ball.vx = Math.max(-maxSpeed, Math.min(maxSpeed, ball.vx));
         ball.vy = Math.max(-maxSpeed, Math.min(maxSpeed, ball.vy));
         
         // 흔들기 파티클 효과
-        if (sensorData.shake && sensorData.shake.detected) {
-            this.createParticles(ball.x, ball.y, Math.min(sensorData.shake.intensity * 3, 8), ball.color);
+        if (sensorData.shake.detected) {
+            this.createParticles(ball.x, ball.y, Math.min(sensorData.shake.intensity * 2, 8), ball.color);
         }
     }
     
     /**
-     * 공 물리 업데이트
+     * 볼 물리 업데이트
      */
-    updateBallPhysics(ballId) {
-        const ball = this.balls[ballId];
+    updateBallPhysics(sensorId) {
+        const ball = this.balls[sensorId];
         if (!ball) return;
         
         // 위치 업데이트
@@ -359,48 +380,131 @@ class DualSensorTestGame extends SensorGameSDK {
         if (ball.x - radius < 0) {
             ball.x = radius;
             ball.vx *= -this.config.bounceStrength;
-            this.createParticles(ball.x, ball.y, 5, ball.color);
+            this.createParticles(ball.x, ball.y, 3, ball.color);
         }
         
         if (ball.x + radius > width) {
             ball.x = width - radius;
             ball.vx *= -this.config.bounceStrength;
-            this.createParticles(ball.x, ball.y, 5, ball.color);
+            this.createParticles(ball.x, ball.y, 3, ball.color);
         }
         
         if (ball.y - radius < 0) {
             ball.y = radius;
             ball.vy *= -this.config.bounceStrength;
-            this.createParticles(ball.x, ball.y, 5, ball.color);
+            this.createParticles(ball.y, ball.y, 3, ball.color);
         }
         
         if (ball.y + radius > height) {
             ball.y = height - radius;
             ball.vy *= -this.config.bounceStrength;
-            this.createParticles(ball.x, ball.y, 5, ball.color);
+            this.createParticles(ball.x, ball.y, 3, ball.color);
         }
     }
     
     /**
-     * 공 궤적 업데이트
+     * 볼 궤적 업데이트
      */
     updateBallTrails() {
         Object.values(this.balls).forEach(ball => {
+            // 현재 위치를 궤적에 추가
             ball.trail.push({
                 x: ball.x,
                 y: ball.y,
                 life: this.config.trailLength
             });
             
+            // 오래된 궤적 제거
             ball.trail = ball.trail.filter(point => {
                 point.life--;
                 return point.life > 0;
             });
             
+            // 최대 길이 제한
             if (ball.trail.length > this.config.trailLength) {
                 ball.trail.shift();
             }
         });
+    }
+    
+    /**
+     * 목표 도달 확인
+     */
+    checkTargetReached() {
+        const ball1 = this.balls.sensor1;
+        const ball2 = this.balls.sensor2;
+        
+        // 각 볼이 목표에 도달했는지 확인
+        const dist1 = Math.sqrt(Math.pow(ball1.x - this.target.x, 2) + Math.pow(ball1.y - this.target.y, 2));
+        const dist2 = Math.sqrt(Math.pow(ball2.x - this.target.x, 2) + Math.pow(ball2.y - this.target.y, 2));
+        
+        ball1.isAtTarget = dist1 <= this.config.targetTolerance;
+        ball2.isAtTarget = dist2 <= this.config.targetTolerance;
+        
+        // UI 업데이트
+        this.updateTargetIndicators();
+        
+        // 두 볼이 모두 목표에 도달했을 때
+        if (ball1.isAtTarget && ball2.isAtTarget) {
+            this.missionComplete();
+        }
+    }
+    
+    /**
+     * 미션 완료 처리
+     */
+    missionComplete() {
+        this.missionCount++;
+        this.score += this.config.scorePerMission;
+        
+        // 성공 파티클 효과
+        this.createSuccessParticles();
+        
+        // UI 업데이트
+        this.updateScoreDisplay();
+        this.updateMissionDisplay();
+        
+        // 성공 패널 표시
+        this.showSuccessPanel();
+        
+        console.log(`🎉 미션 ${this.missionCount} 완료! 점수: ${this.score}`);
+    }
+    
+    /**
+     * 성공 파티클 생성
+     */
+    createSuccessParticles() {
+        const centerX = this.target.x;
+        const centerY = this.target.y;
+        
+        for (let i = 0; i < 20; i++) {
+            this.particles.push({
+                x: centerX + (Math.random() - 0.5) * 60,
+                y: centerY + (Math.random() - 0.5) * 60,
+                vx: (Math.random() - 0.5) * 15,
+                vy: (Math.random() - 0.5) * 15,
+                life: this.config.particleLifetime * 1.5,
+                size: Math.random() * 6 + 3,
+                color: `hsl(${Math.random() * 60 + 40}, 70%, 60%)` // 황금색 계열
+            });
+        }
+    }
+    
+    /**
+     * 파티클 생성
+     */
+    createParticles(x, y, count, color = null) {
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x: x + (Math.random() - 0.5) * 20,
+                y: y + (Math.random() - 0.5) * 20,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                life: this.config.particleLifetime,
+                size: Math.random() * 3 + 2,
+                color: color || `hsl(${this.backgroundHue}, 70%, 60%)`
+            });
+        }
     }
     
     /**
@@ -436,178 +540,6 @@ class DualSensorTestGame extends SensorGameSDK {
             this.target.pulseSize = 0;
             this.target.pulseDirection = 1;
         }
-    }
-    
-    /**
-     * 배경색 변화
-     */
-    updateBackgroundColor() {
-        // 센서 데이터를 기반으로 배경색 변화
-        const ball1Data = this.balls.sensor1.lastSensorData;
-        const ball2Data = this.balls.sensor2.lastSensorData;
-        
-        if (ball1Data && ball2Data) {
-            const intensity1 = Math.abs(ball1Data.rotation.x) + Math.abs(ball1Data.rotation.y);
-            const intensity2 = Math.abs(ball2Data.rotation.x) + Math.abs(ball2Data.rotation.y);
-            
-            if (intensity1 > 0.2 || intensity2 > 0.2) {
-                this.backgroundHue += (intensity1 + intensity2) * 1.5;
-                this.backgroundHue = this.backgroundHue % 360;
-            }
-        }
-    }
-    
-    /**
-     * 미션 완료 확인
-     */
-    checkMissionComplete() {
-        const ball1 = this.balls.sensor1;
-        const ball2 = this.balls.sensor2;
-        
-        // 각 공이 목표에 도달했는지 확인
-        const dist1 = Math.sqrt(Math.pow(ball1.x - this.target.x, 2) + Math.pow(ball1.y - this.target.y, 2));
-        const dist2 = Math.sqrt(Math.pow(ball2.x - this.target.x, 2) + Math.pow(ball2.y - this.target.y, 2));
-        
-        ball1.isAtTarget = dist1 <= this.config.targetTolerance;
-        ball2.isAtTarget = dist2 <= this.config.targetTolerance;
-        
-        // UI 업데이트
-        this.updateTargetIndicators();
-        
-        // 두 공이 모두 목표에 도달했을 때
-        if (ball1.isAtTarget && ball2.isAtTarget) {
-            this.missionComplete();
-        }
-    }
-    
-    /**
-     * 미션 완료 처리
-     */
-    missionComplete() {
-        this.missionCount++;
-        this.score += this.config.scorePerMission;
-        
-        // 성공 파티클 효과
-        this.createSuccessParticles();
-        
-        // UI 업데이트
-        this.updateScoreDisplay();
-        this.updateMissionDisplay();
-        
-        // 성공 패널 표시
-        this.showSuccessPanel();
-        
-        console.log(`🎉 미션 ${this.missionCount} 완료! 점수: ${this.score}`);
-    }
-    
-    /**
-     * 공 위치 초기화
-     */
-    resetBallPositions() {
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-        
-        // 센서 1 공 (왼쪽)
-        this.balls.sensor1.x = centerX - 100;
-        this.balls.sensor1.y = centerY;
-        this.balls.sensor1.vx = 0;
-        this.balls.sensor1.vy = 0;
-        this.balls.sensor1.trail = [];
-        this.balls.sensor1.isAtTarget = false;
-        
-        // 센서 2 공 (오른쪽)  
-        this.balls.sensor2.x = centerX + 100;
-        this.balls.sensor2.y = centerY;
-        this.balls.sensor2.vx = 0;
-        this.balls.sensor2.vy = 0;
-        this.balls.sensor2.trail = [];
-        this.balls.sensor2.isAtTarget = false;
-    }
-    
-    /**
-     * 새 목표 생성
-     */
-    generateNewTarget() {
-        const margin = 100;
-        this.target.x = margin + Math.random() * (window.innerWidth - 2 * margin);
-        this.target.y = margin + Math.random() * (window.innerHeight - 2 * margin);
-        this.target.pulseSize = 0;
-        
-        // 공들의 목표 도달 상태 초기화
-        this.balls.sensor1.isAtTarget = false;
-        this.balls.sensor2.isAtTarget = false;
-        
-        this.updateTargetIndicators();
-    }
-    
-    /**
-     * 파티클 생성
-     */
-    createParticles(x, y, count, color = null) {
-        for (let i = 0; i < count; i++) {
-            this.particles.push({
-                x: x + (Math.random() - 0.5) * 20,
-                y: y + (Math.random() - 0.5) * 20,
-                vx: (Math.random() - 0.5) * 10,
-                vy: (Math.random() - 0.5) * 10,
-                life: this.config.particleLifetime,
-                size: Math.random() * 4 + 2,
-                color: color || `hsl(${this.backgroundHue}, 70%, 60%)`
-            });
-        }
-    }
-    
-    /**
-     * 성공 파티클 생성
-     */
-    createSuccessParticles() {
-        const centerX = this.target.x;
-        const centerY = this.target.y;
-        
-        for (let i = 0; i < 20; i++) {
-            this.particles.push({
-                x: centerX + (Math.random() - 0.5) * 60,
-                y: centerY + (Math.random() - 0.5) * 60,
-                vx: (Math.random() - 0.5) * 15,
-                vy: (Math.random() - 0.5) * 15,
-                life: this.config.particleLifetime * 1.5,
-                size: Math.random() * 6 + 3,
-                color: `hsl(${Math.random() * 60 + 40}, 70%, 60%)`
-            });
-        }
-    }
-    
-    /**
-     * 센서 데이터 시뮬레이션 (테스트용)
-     */
-    simulateSensorData() {
-        if (!this.gameStarted) return;
-        
-        // 테스트용 센서 데이터 생성
-        const testData = {
-            tilt: {
-                x: (Math.random() - 0.5) * 0.5,
-                y: (Math.random() - 0.5) * 0.5
-            },
-            movement: {
-                x: (Math.random() - 0.5) * 2,
-                y: (Math.random() - 0.5) * 2,
-                z: (Math.random() - 0.5) * 2
-            },
-            rotation: {
-                x: (Math.random() - 0.5) * 3,
-                y: (Math.random() - 0.5) * 3,
-                z: (Math.random() - 0.5) * 3
-            },
-            shake: {
-                detected: Math.random() > 0.9,
-                intensity: Math.random() * 2
-            }
-        };
-        
-        // 두 센서에 번갈아가며 적용
-        const sensorId = Math.random() > 0.5 ? 'sensor1' : 'sensor2';
-        this.onSensorData(testData, testData, sensorId);
     }
     
     // ========== 렌더링 ==========
@@ -648,7 +580,7 @@ class DualSensorTestGame extends SensorGameSDK {
     }
     
     /**
-     * 목표 렌더링
+     * 목표 지점 렌더링
      */
     renderTarget() {
         this.ctx.save();
@@ -656,39 +588,39 @@ class DualSensorTestGame extends SensorGameSDK {
         const x = this.target.x;
         const y = this.target.y;
         const baseRadius = this.target.radius;
-        const pulseRadius = baseRadius + this.target.pulseSize * 20;
+        const pulseRadius = baseRadius + this.target.pulseSize * 15;
         
-        // 펄스 원
+        // 외곽 펄스 원
         this.ctx.globalAlpha = 0.3 * (1 - this.target.pulseSize);
-        this.ctx.strokeStyle = this.target.color;
+        this.ctx.strokeStyle = '#10b981';
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
         this.ctx.arc(x, y, pulseRadius, 0, Math.PI * 2);
         this.ctx.stroke();
         
         // 메인 목표 원
-        this.ctx.globalAlpha = 0.6;
-        this.ctx.fillStyle = `${this.target.color}40`;
+        this.ctx.globalAlpha = 0.8;
+        this.ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
         this.ctx.beginPath();
         this.ctx.arc(x, y, baseRadius, 0, Math.PI * 2);
         this.ctx.fill();
         
-        this.ctx.strokeStyle = this.target.color;
+        this.ctx.strokeStyle = '#10b981';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
         
         // 중앙 점
         this.ctx.globalAlpha = 1;
-        this.ctx.fillStyle = this.target.color;
+        this.ctx.fillStyle = '#10b981';
         this.ctx.beginPath();
-        this.ctx.arc(x, y, 5, 0, Math.PI * 2);
+        this.ctx.arc(x, y, 4, 0, Math.PI * 2);
         this.ctx.fill();
         
         this.ctx.restore();
     }
     
     /**
-     * 공 궤적 렌더링
+     * 볼 궤적 렌더링
      */
     renderBallTrails() {
         Object.values(this.balls).forEach(ball => {
@@ -696,7 +628,7 @@ class DualSensorTestGame extends SensorGameSDK {
             
             this.ctx.save();
             this.ctx.strokeStyle = ball.color;
-            this.ctx.lineWidth = 3;
+            this.ctx.lineWidth = 2;
             this.ctx.lineCap = 'round';
             this.ctx.lineJoin = 'round';
             
@@ -707,7 +639,7 @@ class DualSensorTestGame extends SensorGameSDK {
                 const point = ball.trail[i];
                 const alpha = point.life / this.config.trailLength;
                 
-                this.ctx.globalAlpha = alpha * 0.6;
+                this.ctx.globalAlpha = alpha * 0.5;
                 this.ctx.lineTo(point.x, point.y);
             }
             
@@ -717,21 +649,19 @@ class DualSensorTestGame extends SensorGameSDK {
     }
     
     /**
-     * 공 렌더링
+     * 볼 렌더링
      */
     renderBalls() {
         Object.values(this.balls).forEach(ball => {
             this.ctx.save();
             
-            // 목표에 도달한 공은 글로우 효과
+            // 목표에 도달한 볼은 글로우 효과
             if (ball.isAtTarget) {
                 this.ctx.shadowColor = ball.color;
-                this.ctx.shadowBlur = 30;
-                this.ctx.shadowOffsetX = 0;
-                this.ctx.shadowOffsetY = 0;
+                this.ctx.shadowBlur = 25;
             }
             
-            // 그라디언트
+            // 볼 그라디언트
             const gradient = this.ctx.createRadialGradient(
                 ball.x - ball.radius * 0.3,
                 ball.y - ball.radius * 0.3,
@@ -752,7 +682,7 @@ class DualSensorTestGame extends SensorGameSDK {
             
             // 테두리
             this.ctx.strokeStyle = ball.color;
-            this.ctx.lineWidth = ball.isAtTarget ? 4 : 2;
+            this.ctx.lineWidth = ball.isAtTarget ? 3 : 1;
             this.ctx.stroke();
             
             this.ctx.restore();
@@ -771,7 +701,7 @@ class DualSensorTestGame extends SensorGameSDK {
             
             this.ctx.fillStyle = particle.color;
             this.ctx.shadowColor = particle.color;
-            this.ctx.shadowBlur = 8;
+            this.ctx.shadowBlur = 6;
             
             this.ctx.beginPath();
             this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
@@ -804,7 +734,7 @@ class DualSensorTestGame extends SensorGameSDK {
     }
     
     /**
-     * 게임 상태 업데이트
+     * 게임 상태 텍스트 업데이트
      */
     updateGameStatus(status) {
         const element = document.getElementById('missionStatus');
@@ -849,6 +779,8 @@ class DualSensorTestGame extends SensorGameSDK {
         }
     }
     
+    // ========== UI 제어 ==========
+    
     /**
      * 게임 UI 표시
      */
@@ -863,7 +795,8 @@ class DualSensorTestGame extends SensorGameSDK {
     hideInstructionPanel() {
         const panel = document.getElementById('instructionPanel');
         if (panel) {
-            panel.classList.add('hidden');
+            panel.classList.add('fade-out');
+            setTimeout(() => panel.classList.add('hidden'), 300);
         }
     }
     
@@ -878,9 +811,9 @@ class DualSensorTestGame extends SensorGameSDK {
             message.textContent = `미션 ${this.missionCount} 완료! 점수: ${this.score}점`;
             panel.classList.remove('hidden');
             
-            // 3초 후 자동으로 새 미션 시작
+            // 3초 후 자동으로 숨기기
             setTimeout(() => {
-                this.startNewMission();
+                this.hideSuccessPanel();
             }, 3000);
         }
     }
@@ -904,7 +837,7 @@ class DualSensorTestGame extends SensorGameSDK {
         try {
             super.createSession();
         } catch (error) {
-            console.error('❌ 세션 생성 실패:', error);
+            console.error('세션 생성 실패:', error);
             this.updateGameStatus('세션 생성 실패');
         }
     }
@@ -915,20 +848,27 @@ class DualSensorTestGame extends SensorGameSDK {
     startNewMission() {
         this.generateNewTarget();
         this.hideSuccessPanel();
-        // 공 위치는 초기화하지 않고 현재 위치 유지
+        this.resetBallPositions();
     }
     
     /**
      * 게임 리셋
      */
     reset() {
+        // 볼 위치 초기화
         this.resetBallPositions();
+        
+        // 새 목표 생성
         this.generateNewTarget();
+        
+        // 파티클 정리
         this.particles = [];
+        
+        // 점수 및 미션 초기화
         this.score = 0;
         this.missionCount = 0;
-        this.backgroundHue = 220;
         
+        // UI 업데이트
         this.updateScoreDisplay();
         this.updateMissionDisplay();
         this.updateTargetIndicators();
@@ -945,14 +885,13 @@ class DualSensorTestGame extends SensorGameSDK {
             cancelAnimationFrame(this.gameLoop);
         }
         
-        this.gameStarted = false;
         super.destroy();
         console.log('🗑️ 듀얼 센서 테스트 게임 정리 완료');
     }
 }
 
 // 게임 인스턴스 생성
-console.log('🎮 듀얼 센서 테스트 게임 (재설계) 로딩...');
+console.log('🎮 듀얼 센서 테스트 게임 로딩...');
 
 try {
     window.game = new DualSensorTestGame();

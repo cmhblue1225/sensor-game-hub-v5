@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 Sensor Game Hub v5.0</title>
+    <title>🎮 Sensor Game Hub v5.0 (재설계)</title>
     <style>
         :root {
             --primary: #3b82f6;
@@ -134,42 +134,7 @@
             padding: 2rem;
         }
         
-        /* 세션 섹션 */
-        .session-section {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-        
-        .session-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 2rem;
-            margin: 0 auto;
-            max-width: 400px;
-        }
-        
-        .session-code {
-            font-size: 3rem;
-            font-weight: 700;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 0.5rem;
-            color: var(--primary);
-            margin: 1rem 0;
-            text-align: center;
-        }
-        
-        .session-code.hidden {
-            color: var(--text-muted);
-        }
-        
-        .qr-code {
-            margin: 1rem 0;
-            display: flex;
-            justify-content: center;
-        }
-        
-        /* 게임 섹션 */
+        /* 게임 선택 섹션 */
         .games-section {
             margin-bottom: 3rem;
         }
@@ -183,7 +148,7 @@
         
         .games-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 1.5rem;
         }
         
@@ -209,12 +174,6 @@
             background: rgba(59, 130, 246, 0.1);
         }
         
-        .game-card.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        
         .game-title {
             font-size: 1.2rem;
             font-weight: 600;
@@ -232,7 +191,7 @@
         .game-badges {
             display: flex;
             gap: 0.5rem;
-            flex-wrap: wrap;
+            margin-bottom: 1rem;
         }
         
         .badge {
@@ -250,19 +209,109 @@
             color: var(--success);
         }
         
-        .badge-multi {
-            background: rgba(139, 92, 246, 0.2);
-            color: var(--secondary);
-        }
-        
         .badge-dual {
             background: rgba(245, 158, 11, 0.2);
             color: var(--warning);
         }
         
+        .badge-multi {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--secondary);
+        }
+        
+        .game-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .game-btn {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .game-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .game-btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+        
+        .game-btn-secondary {
+            background: var(--card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        /* 세션 정보 섹션 */
+        .session-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .session-section.hidden {
+            display: none;
+        }
+        
+        .session-code {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5rem;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+        
+        .qr-code {
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .sensor-status {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .sensor-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        
+        .sensor-indicator.connected {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
         /* 컨트롤 섹션 */
         .controls-section {
             text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .controls-section.hidden {
+            display: none;
         }
         
         .button-group {
@@ -343,6 +392,69 @@
             border: 1px solid rgba(59, 130, 246, 0.3);
         }
         
+        /* 모달 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal.hidden {
+            display: none;
+        }
+        
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .modal-text {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--card);
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
         /* 로딩 애니메이션 */
         .loading {
             display: inline-block;
@@ -405,7 +517,7 @@
                     <span>🏠</span>
                 </a>
                 <div class="logo">
-                    🚀 Sensor Game Hub v5.0
+                    🚀 Sensor Game Hub v5.0 (재설계)
                 </div>
             </div>
             <div class="connection-status">
@@ -413,34 +525,13 @@
                     <div class="status-dot"></div>
                     <span id="connectionText">연결 중...</span>
                 </div>
-                <div class="status-indicator" id="sensorStatus">
-                    <div class="status-dot"></div>
-                    <span id="sensorText">센서 대기</span>
-                </div>
             </div>
         </div>
     </header>
 
     <!-- 메인 컨테이너 -->
     <div class="container">
-        <!-- 세션 섹션 -->
-        <section class="session-section">
-            <div class="session-card">
-                <h2>📱 세션 코드</h2>
-                <p>모바일에서 이 코드를 입력하세요</p>
-                <div class="session-code hidden" id="sessionCode">----</div>
-                <div class="qr-code" id="qrCode"></div>
-                <button class="btn btn-primary" id="createSessionBtn">
-                    <span class="loading hidden" id="sessionLoading"></span>
-                    <span id="sessionBtnText">세션 생성</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- 상태 메시지 -->
-        <div class="status-message hidden" id="statusMessage"></div>
-
-        <!-- 게임 섹션 -->
+        <!-- 게임 선택 섹션 -->
         <section class="games-section">
             <h2 class="section-title">🎮 게임 선택</h2>
             <div class="games-grid" id="gamesGrid">
@@ -448,39 +539,96 @@
             </div>
         </section>
 
+        <!-- 상태 메시지 -->
+        <div class="status-message hidden" id="statusMessage"></div>
+
+        <!-- 세션 정보 섹션 -->
+        <section class="session-section hidden" id="sessionSection">
+            <h2>📱 세션 정보</h2>
+            <p id="sessionDescription">센서를 연결하여 게임을 시작하세요</p>
+            <div class="session-code" id="sessionCode">----</div>
+            <div class="qr-code" id="qrCode"></div>
+            
+            <!-- 듀얼 센서 상태 -->
+            <div class="sensor-status hidden" id="dualSensorStatus">
+                <div class="sensor-indicator" id="sensor1Status">
+                    <div class="status-dot"></div>
+                    <span>센서 1</span>
+                </div>
+                <div class="sensor-indicator" id="sensor2Status">
+                    <div class="status-dot"></div>
+                    <span>센서 2</span>
+                </div>
+            </div>
+        </section>
+
         <!-- 컨트롤 섹션 -->
-        <section class="controls-section">
+        <section class="controls-section hidden" id="controlsSection">
             <div class="button-group">
-                <button class="btn btn-primary hidden" id="startSoloBtn">
-                    🎯 솔로 게임 시작
+                <!-- 듀얼 센서 게임 시작 -->
+                <button class="btn btn-primary hidden" id="startDualGameBtn" disabled>
+                    <span class="loading hidden" id="dualGameLoading"></span>
+                    <span id="dualGameText">🎮 듀얼 센서 게임 시작</span>
                 </button>
-                <button class="btn btn-secondary hidden" id="createRoomBtn">
-                    🏠 룸 생성
+                
+                <!-- 멀티플레이어 룸 관리 -->
+                <button class="btn btn-primary hidden" id="createRoomBtn" disabled>
+                    <span class="loading hidden" id="createRoomLoading"></span>
+                    <span id="createRoomText">🏠 룸 생성</span>
                 </button>
                 <button class="btn btn-secondary hidden" id="joinRoomBtn">
-                    👥 룸 참가
+                    📝 룸 참가
                 </button>
+                
+                <!-- 공통 -->
                 <button class="btn btn-secondary" id="adminBtn">
                     👑 관리자
+                </button>
+                <button class="btn btn-secondary" id="newSessionBtn">
+                    🔄 새 세션
                 </button>
             </div>
         </section>
     </div>
 
+    <!-- 룸 참가 모달 -->
+    <div class="modal hidden" id="joinRoomModal">
+        <div class="modal-content">
+            <div class="modal-title">🏠 룸 참가</div>
+            <div class="modal-text">참가할 룸의 ID를 입력하세요</div>
+            <input type="text" class="modal-input" id="roomIdInput" placeholder="룸 ID (예: ABC12345)" maxlength="8">
+            <input type="text" class="modal-input" id="nicknameInput" placeholder="닉네임 (선택사항)" maxlength="20">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeJoinRoomModal()">취소</button>
+                <button class="btn btn-primary" onclick="joinRoom()">참가</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 룸 생성 성공 모달 -->
+    <div class="modal hidden" id="roomCreatedModal">
+        <div class="modal-content">
+            <div class="modal-title">🎉 룸 생성 완료!</div>
+            <div class="modal-text">
+                <p>룸이 성공적으로 생성되었습니다.</p>
+                <p><strong>룸 ID: <span id="createdRoomId"></span></strong></p>
+                <p>다른 플레이어들이 이 ID로 참가할 수 있습니다.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="enterRoom()">룸 입장</button>
+            </div>
+        </div>
+    </div>
+
     <!-- QR 코드 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    
+
     <!-- 메인 스크립트 -->
     <script>
         /**
-         * 🎮 Sensor Game Hub v5.0 - PC 클라이언트
+         * 🎮 Sensor Game Hub v5.0 - 재설계된 PC 허브 클라이언트
          * 
-         * 주요 기능:
-         * 1. WebSocket 연결 관리
-         * 2. 세션 생성 및 관리
-         * 3. 게임 선택 및 시작
-         * 4. 멀티플레이어 룸 관리
-         * 5. 센서 상태 모니터링
+         * 완벽한 듀얼 센서 및 멀티플레이어 지원
          */
         
         class SensorGameHubClient {
@@ -489,12 +637,12 @@
                 this.isConnected = false;
                 this.sessionCode = null;
                 this.sessionId = null;
-                this.gameMode = 'solo';
+                this.gameType = null; // 'dual' or 'multiplayer'
                 this.selectedGame = null;
-                this.sensorConnected = false;
+                this.sensorCount = 0;
+                this.createdRoomId = null;
                 this.reconnectAttempts = 0;
                 this.maxReconnectAttempts = 5;
-                this.reconnectDelay = 2000;
                 
                 this.init();
             }
@@ -503,7 +651,7 @@
              * 초기화
              */
             init() {
-                console.log('🚀 Sensor Game Hub 클라이언트 초기화');
+                console.log('🚀 Sensor Game Hub 재설계 클라이언트 초기화');
                 
                 this.bindEvents();
                 this.connect();
@@ -514,27 +662,29 @@
              * 이벤트 바인딩
              */
             bindEvents() {
-                // 세션 생성 버튼
-                document.getElementById('createSessionBtn').addEventListener('click', () => {
-                    this.createSession();
+                // 관리자 버튼
+                document.getElementById('adminBtn').addEventListener('click', () => {
+                    window.open('/admin', '_blank');
                 });
                 
-                // 게임 시작 버튼들
-                document.getElementById('startSoloBtn').addEventListener('click', () => {
-                    this.startSoloGame();
+                // 새 세션 버튼
+                document.getElementById('newSessionBtn').addEventListener('click', () => {
+                    this.resetSession();
                 });
                 
+                // 듀얼 센서 게임 시작
+                document.getElementById('startDualGameBtn').addEventListener('click', () => {
+                    this.startDualGame();
+                });
+                
+                // 룸 생성
                 document.getElementById('createRoomBtn').addEventListener('click', () => {
                     this.createRoom();
                 });
                 
+                // 룸 참가
                 document.getElementById('joinRoomBtn').addEventListener('click', () => {
-                    this.joinRoom();
-                });
-                
-                // 관리자 버튼
-                document.getElementById('adminBtn').addEventListener('click', () => {
-                    window.open('/admin', '_blank');
+                    this.showJoinRoomModal();
                 });
                 
                 // 페이지 언로드 시 연결 정리
@@ -596,13 +746,12 @@
              */
             attemptReconnect() {
                 if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                    console.log('❌ 최대 재연결 시도 횟수 초과');
                     this.showStatusMessage('서버 연결을 복구할 수 없습니다. 페이지를 새로고침해주세요.', 'error');
                     return;
                 }
                 
                 this.reconnectAttempts++;
-                const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1); // 지수 백오프
+                const delay = 2000 * Math.pow(2, this.reconnectAttempts - 1);
                 
                 console.log(`🔄 재연결 시도 ${this.reconnectAttempts}/${this.maxReconnectAttempts} (${delay}ms 후)`);
                 this.showStatusMessage(`재연결 시도 중... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, 'warning');
@@ -628,7 +777,7 @@
              * 서버 메시지 처리
              */
             handleMessage(message) {
-                console.log('📨 메시지 수신:', message.type, message);
+                console.log('📨 메시지 수신:', message.type);
                 
                 switch (message.type) {
                     case 'connected':
@@ -638,7 +787,10 @@
                         this.handleSessionCreated(message);
                         break;
                     case 'session_matched':
-                        this.handleSessionMatched(message);
+                        this.handleSensorConnected(message);
+                        break;
+                    case 'dual_sensor_ready':
+                        this.handleDualSensorReady(message);
                         break;
                     case 'room_created':
                         this.handleRoomCreated(message);
@@ -646,20 +798,8 @@
                     case 'room_joined':
                         this.handleRoomJoined(message);
                         break;
-                    case 'player_joined':
-                        this.handlePlayerJoined(message);
-                        break;
-                    case 'player_left':
-                        this.handlePlayerLeft(message);
-                        break;
                     case 'game_started':
                         this.handleGameStarted(message);
-                        break;
-                    case 'sensor_data':
-                        this.handleSensorData(message);
-                        break;
-                    case 'game_event':
-                        this.handleGameEvent(message);
                         break;
                     case 'error':
                         this.handleError(message);
@@ -673,7 +813,7 @@
              * 연결 확인 처리
              */
             handleConnected(message) {
-                console.log('✅ 서버 연결 확인:', message.clientId);
+                console.log('✅ 서버 연결 확인');
                 this.showStatusMessage('서버에 연결되었습니다', 'success');
             }
             
@@ -681,48 +821,69 @@
              * 세션 생성 완료 처리
              */
             handleSessionCreated(message) {
-                console.log('🔑 세션 생성됨:', message.sessionCode);
-                
                 this.sessionCode = message.sessionCode;
                 this.sessionId = message.sessionId;
-                this.gameMode = message.gameMode;
+                this.gameType = message.gameType;
                 
-                // 세션 정보를 로컬 스토리지에 저장 (게임에서 자동 연결용)
-                const sessionData = {
-                    sessionCode: message.sessionCode,
-                    sessionId: message.sessionId,
-                    gameMode: message.gameMode,
+                console.log(`🔑 ${this.gameType} 세션 생성됨: ${this.sessionCode}`);
+                
+                // 세션 정보 저장
+                this.storeSessionData({
+                    sessionCode: this.sessionCode,
+                    sessionId: this.sessionId,
+                    gameType: this.gameType,
                     createdAt: Date.now()
-                };
-                localStorage.setItem('sgh_session', JSON.stringify(sessionData));
-                console.log('💾 세션 정보 저장됨:', sessionData);
+                });
                 
-                this.displaySessionCode(message.sessionCode);
-                this.generateQRCode(message.sessionCode);
-                this.updateUI();
+                this.displaySession();
+                this.generateQRCode(this.sessionCode);
                 
-                this.showStatusMessage('세션이 생성되었습니다. 모바일에서 코드를 입력하세요.', 'success');
+                if (this.gameType === 'dual') {
+                    this.showStatusMessage('두 개의 센서를 연결해주세요', 'info');
+                    this.showDualSensorStatus();
+                } else {
+                    this.showStatusMessage('세션이 생성되었습니다. 센서를 연결하거나 룸을 관리하세요.', 'success');
+                    this.showMultiplayerControls();
+                }
             }
             
             /**
              * 센서 연결 처리
              */
-            handleSessionMatched(message) {
-                console.log('📱 센서 연결됨:', message.sensorId);
+            handleSensorConnected(message) {
+                this.sensorCount = message.sensorCount;
                 
-                this.sensorConnected = true;
-                this.updateSensorStatus(true);
-                this.updateUI();
+                console.log(`📱 센서 연결됨: ${message.sensorId} (총 ${this.sensorCount}개)`);
                 
-                this.showStatusMessage('센서가 연결되었습니다!', 'success');
+                if (this.gameType === 'dual') {
+                    this.updateDualSensorStatus(message.sensorId);
+                    
+                    if (this.sensorCount < 2) {
+                        this.showStatusMessage(`센서 ${this.sensorCount}/2 연결됨. 추가 센서를 연결해주세요.`, 'info');
+                    }
+                } else {
+                    this.showStatusMessage('센서가 연결되었습니다!', 'success');
+                    this.enableMultiplayerControls();
+                }
+            }
+            
+            /**
+             * 듀얼 센서 준비 완료 처리
+             */
+            handleDualSensorReady(message) {
+                console.log('🎮 듀얼 센서 준비 완료');
+                this.showStatusMessage('두 센서가 모두 연결되었습니다. 게임을 시작할 수 있습니다!', 'success');
+                this.enableDualGameStart();
             }
             
             /**
              * 룸 생성 완료 처리
              */
             handleRoomCreated(message) {
-                console.log('🏠 룸 생성됨:', message.roomId);
-                this.showStatusMessage('멀티플레이어 룸이 생성되었습니다. 다른 플레이어를 기다리는 중...', 'info');
+                this.createdRoomId = message.roomId;
+                
+                console.log('🏠 룸 생성됨:', this.createdRoomId);
+                this.showRoomCreatedModal(this.createdRoomId);
             }
             
             /**
@@ -730,49 +891,23 @@
              */
             handleRoomJoined(message) {
                 console.log('👥 룸 참가됨:', message.roomId);
-                this.showStatusMessage('룸에 참가했습니다.', 'success');
-            }
-            
-            /**
-             * 플레이어 참가 처리
-             */
-            handlePlayerJoined(message) {
-                console.log('👤 플레이어 참가:', message.player.nickname);
-                this.showStatusMessage(`${message.player.nickname}님이 참가했습니다. (${message.totalPlayers}명)`, 'info');
-            }
-            
-            /**
-             * 플레이어 퇴장 처리
-             */
-            handlePlayerLeft(message) {
-                console.log('👤 플레이어 퇴장:', message.sessionId);
-                this.showStatusMessage(`플레이어가 퇴장했습니다. (${message.totalPlayers}명)`, 'warning');
+                
+                // 룸 대기실로 이동
+                window.location.href = `/room/${message.roomId}`;
             }
             
             /**
              * 게임 시작 처리
              */
             handleGameStarted(message) {
-                console.log('🎮 게임 시작:', message.gameId);
-                this.showStatusMessage('게임이 시작되었습니다!', 'success');
+                console.log('🎮 게임 시작:', message);
+                this.showStatusMessage('게임이 시작됩니다!', 'success');
                 
-                // 게임 페이지로 이동 (개별 게임에서 구현)
-                this.openGamePage(message.gameId);
-            }
-            
-            /**
-             * 센서 데이터 처리
-             */
-            handleSensorData(message) {
-                // 센서 데이터는 개별 게임에서 처리
-                console.log('📊 센서 데이터:', message.sensorId, message.data);
-            }
-            
-            /**
-             * 게임 이벤트 처리
-             */
-            handleGameEvent(message) {
-                console.log('🎮 게임 이벤트:', message.eventType, message.data);
+                // 게임 페이지로 이동
+                setTimeout(() => {
+                    const gameUrl = `/games/${this.selectedGame}/index.html`;
+                    window.open(gameUrl, '_blank');
+                }, 1000);
             }
             
             /**
@@ -781,80 +916,10 @@
             handleError(message) {
                 console.error('❌ 서버 오류:', message.error);
                 this.showStatusMessage(message.error, 'error');
-            }
-            
-            /**
-             * 세션 생성
-             */
-            createSession() {
-                if (!this.isConnected) {
-                    this.showStatusMessage('서버에 연결되지 않았습니다', 'error');
-                    return;
-                }
                 
-                this.setLoading('sessionLoading', true);
-                this.send({
-                    type: 'create_session',
-                    gameMode: this.gameMode
-                });
-            }
-            
-            /**
-             * 솔로 게임 시작
-             */
-            startSoloGame() {
-                if (!this.selectedGame) {
-                    this.showStatusMessage('게임을 선택해주세요', 'warning');
-                    return;
-                }
-                
-                if (!this.sensorConnected) {
-                    this.showStatusMessage('센서를 먼저 연결해주세요', 'warning');
-                    return;
-                }
-                
-                console.log('🎯 솔로 게임 시작:', this.selectedGame);
-                this.openGamePage(this.selectedGame);
-            }
-            
-            /**
-             * 룸 생성
-             */
-            createRoom() {
-                if (!this.selectedGame) {
-                    this.showStatusMessage('게임을 선택해주세요', 'warning');
-                    return;
-                }
-                
-                if (!this.sessionCode) {
-                    this.showStatusMessage('세션을 먼저 생성해주세요', 'warning');
-                    return;
-                }
-                
-                this.send({
-                    type: 'create_room',
-                    gameId: this.selectedGame,
-                    maxPlayers: 4
-                });
-            }
-            
-            /**
-             * 룸 참가
-             */
-            joinRoom() {
-                const roomId = prompt('참가할 룸 ID를 입력하세요:');
-                if (!roomId) return;
-                
-                if (!this.sessionCode) {
-                    this.showStatusMessage('세션을 먼저 생성해주세요', 'warning');
-                    return;
-                }
-                
-                this.send({
-                    type: 'join_room',
-                    roomId: roomId.trim(),
-                    nickname: 'Player'
-                });
+                // 로딩 상태 해제
+                this.setLoading('createRoomLoading', false);
+                this.setLoading('dualGameLoading', false);
             }
             
             /**
@@ -905,70 +970,102 @@
                 const badges = game.modes?.map(mode => {
                     const badgeClass = {
                         'solo': 'badge-solo',
-                        'multiplayer': 'badge-multi',
-                        'dual': 'badge-dual'
+                        'dual': 'badge-dual',
+                        'multiplayer': 'badge-multi'
                     }[mode] || 'badge-solo';
                     
                     const badgeIcon = {
                         'solo': '🎯',
-                        'multiplayer': '👥',
-                        'dual': '📱📱'
+                        'dual': '📱📱',
+                        'multiplayer': '👥'
                     }[mode] || '🎮';
                     
                     return `<span class="badge ${badgeClass}">${badgeIcon} ${mode}</span>`;
                 }).join('') || '<span class="badge badge-solo">🎯 solo</span>';
                 
+                // 게임 타입별 액션 버튼 생성
+                let actions = '';
+                if (game.modes?.includes('solo')) {
+                    actions += `<button class="game-btn game-btn-primary" onclick="startSoloGame('${game.gameId}')">솔로 플레이</button>`;
+                }
+                if (game.modes?.includes('dual')) {
+                    actions += `<button class="game-btn game-btn-secondary" onclick="startDualSensorSetup('${game.gameId}')">듀얼 센서</button>`;
+                }
+                if (game.modes?.includes('multiplayer')) {
+                    actions += `<button class="game-btn game-btn-secondary" onclick="startMultiplayerSetup('${game.gameId}')">멀티플레이어</button>`;
+                }
+                
                 card.innerHTML = `
                     <div class="game-title">${game.name || game.gameId}</div>
                     <div class="game-description">${game.description || '게임 설명이 없습니다'}</div>
                     <div class="game-badges">${badges}</div>
+                    <div class="game-actions">${actions}</div>
                 `;
-                
-                card.addEventListener('click', () => {
-                    this.selectGame(game.gameId);
-                });
                 
                 return card;
             }
             
             /**
-             * 게임 선택
+             * 솔로 게임 시작
              */
-            selectGame(gameId) {
-                // 이전 선택 해제
-                document.querySelectorAll('.game-card').forEach(card => {
-                    card.classList.remove('selected');
-                });
+            startSoloGame(gameId) {
+                this.selectedGame = gameId;
+                console.log('🎯 솔로 게임 시작:', gameId);
                 
-                // 새 선택
-                const selectedCard = document.querySelector(`[data-game-id="${gameId}"]`);
-                if (selectedCard) {
-                    selectedCard.classList.add('selected');
-                    this.selectedGame = gameId;
-                    this.updateUI();
-                    
-                    console.log('🎮 게임 선택:', gameId);
-                    this.showStatusMessage(`"${selectedCard.querySelector('.game-title').textContent}" 게임을 선택했습니다`, 'info');
-                }
-            }
-            
-            /**
-             * 게임 페이지 열기
-             */
-            openGamePage(gameId) {
+                // 솔로 게임은 바로 실행
                 const gameUrl = `/games/${gameId}/index.html`;
                 window.open(gameUrl, '_blank');
             }
             
             /**
-             * 세션 코드 표시
+             * 듀얼 센서 설정 시작
              */
-            displaySessionCode(code) {
-                const sessionCodeEl = document.getElementById('sessionCode');
-                sessionCodeEl.textContent = code;
-                sessionCodeEl.classList.remove('hidden');
+            startDualSensorSetup(gameId) {
+                this.selectedGame = gameId;
+                this.createSession('dual');
+            }
+            
+            /**
+             * 멀티플레이어 설정 시작
+             */
+            startMultiplayerSetup(gameId) {
+                this.selectedGame = gameId;
+                this.createSession('multiplayer');
+            }
+            
+            /**
+             * 세션 생성
+             */
+            createSession(gameType) {
+                if (!this.isConnected) {
+                    this.showStatusMessage('서버에 연결되지 않았습니다', 'error');
+                    return;
+                }
                 
-                this.setLoading('sessionLoading', false);
+                this.gameType = gameType;
+                
+                this.send({
+                    type: 'create_session',
+                    gameType: gameType
+                });
+                
+                console.log(`🔑 ${gameType} 세션 생성 요청`);
+            }
+            
+            /**
+             * 세션 표시
+             */
+            displaySession() {
+                document.getElementById('sessionCode').textContent = this.sessionCode;
+                document.getElementById('sessionSection').classList.remove('hidden');
+                document.getElementById('controlsSection').classList.remove('hidden');
+                
+                const description = {
+                    'dual': '두 개의 모바일 기기에서 아래 코드를 입력하세요',
+                    'multiplayer': '모바일에서 아래 코드를 입력하거나 룸을 관리하세요'
+                };
+                
+                document.getElementById('sessionDescription').textContent = description[this.gameType] || '';
             }
             
             /**
@@ -980,20 +1077,157 @@
                 
                 const sensorUrl = `${window.location.origin}/sensor?code=${sessionCode}`;
                 
-                QRCode.toCanvas(sensorUrl, {
-                    width: 200,
-                    margin: 2,
-                    color: {
-                        dark: '#3b82f6',
-                        light: '#f8fafc'
-                    }
-                }, (err, canvas) => {
-                    if (err) {
-                        console.error('❌ QR 코드 생성 오류:', err);
-                    } else {
-                        qrContainer.appendChild(canvas);
-                    }
+                if (typeof QRCode !== 'undefined') {
+                    QRCode.toCanvas(sensorUrl, {
+                        width: 200,
+                        margin: 2,
+                        color: {
+                            dark: '#3b82f6',
+                            light: '#f8fafc'
+                        }
+                    }, (err, canvas) => {
+                        if (err) {
+                            console.error('❌ QR 코드 생성 오류:', err);
+                            qrContainer.innerHTML = '<p style="color: var(--error);">QR 코드 생성 실패</p>';
+                        } else {
+                            qrContainer.appendChild(canvas);
+                        }
+                    });
+                } else {
+                    console.warn('⚠️ QRCode 라이브러리 없음');
+                    qrContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">QR 코드 대신 직접 접속: <br><a href="${sensorUrl}" target="_blank">${sensorUrl}</a></p>`;
+                }
+            }
+            
+            /**
+             * 듀얼 센서 상태 표시
+             */
+            showDualSensorStatus() {
+                document.getElementById('dualSensorStatus').classList.remove('hidden');
+                document.getElementById('startDualGameBtn').classList.remove('hidden');
+            }
+            
+            /**
+             * 듀얼 센서 상태 업데이트
+             */
+            updateDualSensorStatus(sensorId) {
+                if (sensorId === 'sensor1' || sensorId.includes('1')) {
+                    document.getElementById('sensor1Status').classList.add('connected');
+                } else if (sensorId === 'sensor2' || sensorId.includes('2')) {
+                    document.getElementById('sensor2Status').classList.add('connected');
+                }
+            }
+            
+            /**
+             * 듀얼 게임 시작 활성화
+             */
+            enableDualGameStart() {
+                document.getElementById('startDualGameBtn').disabled = false;
+            }
+            
+            /**
+             * 멀티플레이어 컨트롤 표시
+             */
+            showMultiplayerControls() {
+                document.getElementById('createRoomBtn').classList.remove('hidden');
+                document.getElementById('joinRoomBtn').classList.remove('hidden');
+            }
+            
+            /**
+             * 멀티플레이어 컨트롤 활성화
+             */
+            enableMultiplayerControls() {
+                document.getElementById('createRoomBtn').disabled = false;
+            }
+            
+            /**
+             * 듀얼 센서 게임 시작
+             */
+            startDualGame() {
+                this.setLoading('dualGameLoading', true);
+                
+                this.send({
+                    type: 'start_game'
                 });
+            }
+            
+            /**
+             * 룸 생성
+             */
+            createRoom() {
+                this.setLoading('createRoomLoading', true);
+                
+                this.send({
+                    type: 'create_room',
+                    gameId: this.selectedGame,
+                    maxPlayers: 10
+                });
+            }
+            
+            /**
+             * 룸 참가 모달 표시
+             */
+            showJoinRoomModal() {
+                document.getElementById('joinRoomModal').classList.remove('hidden');
+                document.getElementById('roomIdInput').focus();
+            }
+            
+            /**
+             * 룸 생성 성공 모달 표시
+             */
+            showRoomCreatedModal(roomId) {
+                document.getElementById('createdRoomId').textContent = roomId;
+                document.getElementById('roomCreatedModal').classList.remove('hidden');
+                
+                this.setLoading('createRoomLoading', false);
+            }
+            
+            /**
+             * 세션 정보 저장
+             */
+            storeSessionData(sessionData) {
+                try {
+                    const dataWithExpiry = {
+                        ...sessionData,
+                        expiresAt: Date.now() + (60 * 60 * 1000) // 1시간 만료
+                    };
+                    localStorage.setItem('sgh_session', JSON.stringify(dataWithExpiry));
+                    console.log('💾 세션 데이터 저장됨:', sessionData.sessionCode);
+                } catch (error) {
+                    console.warn('⚠️ 세션 데이터 저장 실패:', error);
+                }
+            }
+            
+            /**
+             * 세션 초기화
+             */
+            resetSession() {
+                this.sessionCode = null;
+                this.sessionId = null;
+                this.gameType = null;
+                this.selectedGame = null;
+                this.sensorCount = 0;
+                this.createdRoomId = null;
+                
+                localStorage.removeItem('sgh_session');
+                
+                // UI 초기화
+                document.getElementById('sessionSection').classList.add('hidden');
+                document.getElementById('controlsSection').classList.add('hidden');
+                document.getElementById('dualSensorStatus').classList.add('hidden');
+                document.getElementById('startDualGameBtn').classList.add('hidden');
+                document.getElementById('createRoomBtn').classList.add('hidden');
+                document.getElementById('joinRoomBtn').classList.add('hidden');
+                
+                // 센서 상태 초기화
+                document.getElementById('sensor1Status').classList.remove('connected');
+                document.getElementById('sensor2Status').classList.remove('connected');
+                
+                // 버튼 상태 초기화
+                document.getElementById('startDualGameBtn').disabled = true;
+                document.getElementById('createRoomBtn').disabled = true;
+                
+                this.showStatusMessage('새 세션을 위해 게임을 선택해주세요', 'info');
             }
             
             /**
@@ -1013,46 +1247,6 @@
             }
             
             /**
-             * 센서 상태 업데이트
-             */
-            updateSensorStatus(connected) {
-                const statusEl = document.getElementById('sensorStatus');
-                const textEl = document.getElementById('sensorText');
-                
-                if (connected) {
-                    statusEl.classList.add('status-connected');
-                    textEl.textContent = '센서 연결됨';
-                } else {
-                    statusEl.classList.remove('status-connected');
-                    textEl.textContent = '센서 대기';
-                }
-            }
-            
-            /**
-             * UI 업데이트
-             */
-            updateUI() {
-                const hasSession = !!this.sessionCode;
-                const hasGame = !!this.selectedGame;
-                const hasSensor = this.sensorConnected;
-                
-                // 게임 모드에 따른 버튼 표시
-                document.getElementById('startSoloBtn').classList.toggle('hidden', !(hasSession && hasGame && hasSensor));
-                document.getElementById('createRoomBtn').classList.toggle('hidden', !(hasSession && hasGame));
-                document.getElementById('joinRoomBtn').classList.toggle('hidden', !hasSession);
-                
-                // 세션 생성 버튼 텍스트 업데이트
-                const sessionBtn = document.getElementById('createSessionBtn');
-                const sessionBtnText = document.getElementById('sessionBtnText');
-                
-                if (hasSession) {
-                    sessionBtnText.textContent = '새 세션 생성';
-                } else {
-                    sessionBtnText.textContent = '세션 생성';
-                }
-            }
-            
-            /**
              * 상태 메시지 표시
              */
             showStatusMessage(message, type = 'info') {
@@ -1061,7 +1255,7 @@
                 statusEl.className = `status-message ${type}`;
                 statusEl.classList.remove('hidden');
                 
-                // 3초 후 자동 숨김 (오류 메시지 제외)
+                // 자동 숨김 (오류 메시지 제외)
                 if (type !== 'error') {
                     setTimeout(() => {
                         statusEl.classList.add('hidden');
@@ -1078,6 +1272,49 @@
                     element.classList.toggle('hidden', !loading);
                 }
             }
+        }
+        
+        // 전역 함수들
+        function startSoloGame(gameId) {
+            window.sensorGameHub.startSoloGame(gameId);
+        }
+        
+        function startDualSensorSetup(gameId) {
+            window.sensorGameHub.startDualSensorSetup(gameId);
+        }
+        
+        function startMultiplayerSetup(gameId) {
+            window.sensorGameHub.startMultiplayerSetup(gameId);
+        }
+        
+        function closeJoinRoomModal() {
+            document.getElementById('joinRoomModal').classList.add('hidden');
+        }
+        
+        function joinRoom() {
+            const roomId = document.getElementById('roomIdInput').value.trim().toUpperCase();
+            const nickname = document.getElementById('nicknameInput').value.trim() || 'Player';
+            
+            if (!roomId) {
+                alert('룸 ID를 입력해주세요');
+                return;
+            }
+            
+            window.sensorGameHub.send({
+                type: 'join_room',
+                roomId: roomId,
+                nickname: nickname
+            });
+            
+            closeJoinRoomModal();
+        }
+        
+        function enterRoom() {
+            const roomId = window.sensorGameHub.createdRoomId;
+            document.getElementById('roomCreatedModal').classList.add('hidden');
+            
+            // 룸 대기실로 이동
+            window.location.href = `/room/${roomId}`;
         }
         
         // 페이지 로드 시 클라이언트 초기화

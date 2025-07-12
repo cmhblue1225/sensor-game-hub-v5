@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👥 멀티플레이어 센서 테스트 (재설계)</title>
+    <title>👥 멀티플레이어 센서 테스트</title>
     <style>
         :root {
             --primary: #3b82f6;
@@ -11,15 +11,11 @@
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
-            --info: #06b6d4;
             --background: #0f172a;
             --surface: #1e293b;
-            --card: #334155;
             --text-primary: #f8fafc;
             --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
             --border: #475569;
-            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
         }
         
         * {
@@ -59,75 +55,58 @@
             position: absolute;
             background: rgba(30, 41, 59, 0.9);
             border: 1px solid var(--border);
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            backdrop-filter: blur(12px);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
             pointer-events: all;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
         
         /* 리더보드 (좌상단) */
         .leaderboard-panel {
             top: 1rem;
             left: 1rem;
-            min-width: 220px;
-            max-width: 280px;
+            min-width: 200px;
         }
         
         .leaderboard-title {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 700;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             color: var(--primary);
             text-align: center;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
         
         .player-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+            border-radius: 0.25rem;
             background: rgba(59, 130, 246, 0.1);
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
-        }
-        
-        .player-item:hover {
-            background: rgba(59, 130, 246, 0.15);
         }
         
         .player-item.me {
             background: rgba(16, 185, 129, 0.2);
-            border-color: var(--success);
-            transform: scale(1.02);
+            border: 1px solid var(--success);
         }
         
         .player-name {
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            font-size: 0.9rem;
+            gap: 0.5rem;
         }
         
         .player-color {
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         .player-score {
             font-weight: 700;
             font-family: 'Courier New', monospace;
-            color: var(--warning);
         }
         
         /* 게임 상태 (우상단) */
@@ -135,76 +114,57 @@
             top: 1rem;
             right: 1rem;
             text-align: right;
-            min-width: 200px;
         }
         
         .status-item {
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
             font-size: 0.9rem;
         }
         
         .status-indicator {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--error);
-            transition: background-color 0.3s ease;
         }
         
         .status-indicator.connected {
             background: var(--success);
-            box-shadow: 0 0 8px var(--success);
         }
         
         .timer-display {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--warning);
             font-family: 'Courier New', monospace;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .game-status-text {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-top: 0.5rem;
         }
         
         /* 플레이어 정보 (좌하단) */
         .player-info-panel {
             bottom: 1rem;
             left: 1rem;
-            min-width: 220px;
+            min-width: 200px;
         }
         
         .my-stats {
             text-align: center;
-            margin-bottom: 1rem;
         }
         
         .my-score {
-            font-size: 2.2rem;
+            font-size: 2rem;
             font-weight: 700;
             color: var(--success);
             margin-bottom: 0.5rem;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .score-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
         }
         
         .activity-bars {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 0.75rem;
+            gap: 0.5rem;
             margin-top: 1rem;
         }
         
@@ -215,43 +175,23 @@
         .activity-label {
             font-size: 0.7rem;
             color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
         }
         
         .activity-progress {
             width: 100%;
-            height: 24px;
+            height: 20px;
             background: var(--surface);
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
             position: relative;
-            border: 1px solid var(--border);
         }
         
         .activity-fill {
             height: 100%;
-            background: var(--gradient);
-            transition: width 0.3s ease;
-            border-radius: 12px;
-            position: relative;
-        }
-        
-        .activity-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            animation: shimmer 2s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.2s ease;
+            border-radius: 10px;
         }
         
         /* 컨트롤 패널 (하단 중앙) */
@@ -263,21 +203,17 @@
         
         .btn-group {
             display: flex;
-            gap: 0.75rem;
+            gap: 0.5rem;
         }
         
         .btn {
-            padding: 0.75rem 1.25rem;
+            padding: 0.5rem 1rem;
             border: none;
-            border-radius: 0.5rem;
-            font-size: 0.85rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
+            transition: all 0.2s ease;
         }
         
         .btn-primary {
@@ -296,24 +232,13 @@
             color: white;
         }
         
-        .btn-warning {
-            background: var(--warning);
-            color: var(--background);
-        }
-        
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
+            transform: translateY(-1px);
         }
         
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
         }
         
         /* 대기실 패널 */
@@ -322,52 +247,34 @@
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            max-width: 500px;
-            min-width: 400px;
+            max-width: 400px;
+            min-width: 300px;
         }
         
         .lobby-title {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 1.5rem;
-            background: var(--gradient);
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         
-        .waiting-message {
-            color: var(--text-secondary);
-            margin: 1.5rem 0;
-            line-height: 1.6;
-        }
-        
         .lobby-players {
-            margin: 2rem 0;
+            margin: 1.5rem 0;
             text-align: left;
-        }
-        
-        .lobby-players h4 {
-            color: var(--primary);
-            margin-bottom: 1rem;
-            text-align: center;
-            font-size: 1.1rem;
         }
         
         .lobby-player {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
             background: var(--surface);
-            border-radius: 0.75rem;
+            border-radius: 0.5rem;
             border: 1px solid var(--border);
-            transition: all 0.2s ease;
-        }
-        
-        .lobby-player:hover {
-            background: var(--card);
         }
         
         .lobby-player.host {
@@ -375,11 +282,9 @@
             background: rgba(245, 158, 11, 0.1);
         }
         
-        .lobby-player .player-name {
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        .waiting-message {
+            color: var(--text-secondary);
+            margin: 1rem 0;
         }
         
         /* 게임 결과 패널 */
@@ -388,82 +293,40 @@
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            max-width: 500px;
-            min-width: 400px;
+            max-width: 400px;
+            min-width: 300px;
         }
         
         .results-title {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
         
         .winner-announcement {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             color: var(--success);
-            margin-bottom: 2rem;
-            font-weight: 600;
+            margin-bottom: 1.5rem;
         }
         
         .final-scores {
             text-align: left;
-            margin: 2rem 0;
+            margin: 1.5rem 0;
         }
         
         .final-score-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
             background: var(--surface);
-            border-radius: 0.75rem;
-            border: 1px solid var(--border);
+            border-radius: 0.5rem;
         }
         
         .final-score-item.winner {
             border: 2px solid var(--success);
             background: rgba(16, 185, 129, 0.1);
-            transform: scale(1.02);
-        }
-        
-        .final-score-item .player-name {
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .final-score-item .player-score {
-            font-weight: 700;
-            font-family: 'Courier New', monospace;
-            font-size: 1.1rem;
-        }
-        
-        /* 인스트럭션 가이드 */
-        .instruction-guide {
-            background: var(--surface);
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            margin: 1.5rem 0;
-            border-left: 4px solid var(--info);
-        }
-        
-        .instruction-guide-title {
-            font-weight: 600;
-            color: var(--info);
-            margin-bottom: 0.75rem;
-            font-size: 1rem;
-        }
-        
-        .instruction-guide-text {
-            color: var(--text-secondary);
-            line-height: 1.5;
-            font-size: 0.9rem;
         }
         
         /* 히든 클래스 */
@@ -471,65 +334,8 @@
             display: none !important;
         }
         
-        /* 애니메이션 */
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
-        
         /* 반응형 */
         @media (max-width: 768px) {
-            .ui-panel {
-                padding: 1rem;
-                font-size: 0.85rem;
-            }
-            
-            .leaderboard-panel,
-            .player-info-panel {
-                min-width: 180px;
-                max-width: 200px;
-            }
-            
-            .status-panel {
-                min-width: 160px;
-            }
-            
-            .my-score {
-                font-size: 1.8rem;
-            }
-            
-            .timer-display {
-                font-size: 1.5rem;
-            }
-            
-            .lobby-panel,
-            .results-panel {
-                max-width: 350px;
-                min-width: 300px;
-                padding: 1.5rem;
-            }
-            
-            .lobby-title,
-            .results-title {
-                font-size: 1.8rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
             .ui-panel {
                 padding: 0.75rem;
                 font-size: 0.8rem;
@@ -540,9 +346,8 @@
                 min-width: 150px;
             }
             
-            .btn {
-                padding: 0.6rem 1rem;
-                font-size: 0.8rem;
+            .my-score {
+                font-size: 1.5rem;
             }
             
             .lobby-panel,
@@ -561,8 +366,8 @@
     <!-- 게임 UI 오버레이 -->
     <div class="game-ui">
         <!-- 리더보드 -->
-        <div class="ui-panel leaderboard-panel hidden fade-in" id="leaderboardPanel">
-            <div class="leaderboard-title">🏆 실시간 순위</div>
+        <div class="ui-panel leaderboard-panel hidden" id="leaderboardPanel">
+            <div class="leaderboard-title">🏆 리더보드</div>
             <div id="playersList"></div>
         </div>
         
@@ -576,17 +381,20 @@
                 <span>센서 연결</span>
                 <div class="status-indicator" id="sensorStatus"></div>
             </div>
+            <div class="status-item">
+                <span id="gameStatusText">대기 중</span>
+            </div>
             <div class="status-item hidden" id="timerContainer">
+                <span>남은 시간</span>
                 <div class="timer-display" id="timerDisplay">3:00</div>
             </div>
-            <div class="game-status-text" id="gameStatusText">대기 중</div>
         </div>
         
         <!-- 내 정보 -->
-        <div class="ui-panel player-info-panel hidden fade-in" id="playerInfoPanel">
+        <div class="ui-panel player-info-panel hidden" id="playerInfoPanel">
             <div class="my-stats">
                 <div class="my-score" id="myScore">0</div>
-                <div class="score-label">내 점수</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">내 점수</div>
             </div>
             
             <div class="activity-bars">
@@ -614,37 +422,24 @@
         <!-- 컨트롤 패널 -->
         <div class="ui-panel control-panel">
             <div class="btn-group">
-                <button class="btn btn-secondary" onclick="game.restartGame()" id="restartBtn">🔄 재시작</button>
-                <button class="btn btn-warning hidden" onclick="game.startGame()" id="startGameBtn">🎮 게임 시작</button>
+                <button class="btn btn-secondary" onclick="game.reset()" id="resetBtn">🔄 리셋</button>
+                <button class="btn btn-success hidden" onclick="game.startGame()" id="startGameBtn">🎮 게임 시작</button>
                 <button class="btn btn-primary" onclick="window.close()">🏠 나가기</button>
             </div>
         </div>
         
         <!-- 대기실 패널 -->
-        <div class="ui-panel lobby-panel fade-in" id="lobbyPanel">
-            <div class="lobby-title">👥 멀티플레이어 대기실</div>
-            
+        <div class="ui-panel lobby-panel" id="lobbyPanel">
+            <div class="lobby-title">👥 대기실</div>
             <div class="waiting-message">
-                최대 10명이 함께 플레이하는 실시간 센서 게임입니다.<br>
-                목표 존을 수집하여 가장 높은 점수를 획득하세요!
+                센서를 연결하고 룸을 생성하거나 참가하세요.
             </div>
-            
-            <div class="instruction-guide">
-                <div class="instruction-guide-title">📱 게임 방법</div>
-                <div class="instruction-guide-text">
-                    • 센서를 기울여서 공을 움직이세요<br>
-                    • 목표 존에 도달하면 점수를 획득합니다<br>
-                    • 흔들기로 특수 효과와 보너스 점수!<br>
-                    • 스페이스바로 부스트를 사용하세요
-                </div>
-            </div>
-            
             <div class="btn-group">
-                <button class="btn btn-primary pulse" onclick="game.createSession()" id="createSessionBtn">🚀 세션 생성</button>
+                <button class="btn btn-primary" onclick="game.createSession()" id="createSessionBtn">세션 생성</button>
             </div>
             
             <div class="lobby-players hidden" id="lobbyPlayers">
-                <h4>🎮 참가자 목록</h4>
+                <h4 style="margin-bottom: 1rem;">참가자 목록</h4>
                 <div id="playersListLobby"></div>
             </div>
             
@@ -655,19 +450,13 @@
         </div>
         
         <!-- 게임 결과 패널 -->
-        <div class="ui-panel results-panel hidden fade-in" id="resultsPanel">
+        <div class="ui-panel results-panel hidden" id="resultsPanel">
             <div class="results-title">🎯 게임 종료</div>
             <div class="winner-announcement" id="winnerText"></div>
-            
-            <div class="final-scores">
-                <h4 style="color: var(--primary); margin-bottom: 1rem; text-align: center;">📊 최종 순위</h4>
-                <div id="finalScores"></div>
-            </div>
-            
+            <div class="final-scores" id="finalScores"></div>
             <div class="btn-group">
-                <button class="btn btn-warning" onclick="game.restartGame()" id="hostRestartBtn">🔄 재시작</button>
-                <button class="btn btn-secondary" onclick="game.returnToLobby()">🏠 대기실</button>
-                <button class="btn btn-primary" onclick="window.close()">✖️ 나가기</button>
+                <button class="btn btn-primary" onclick="game.returnToLobby()">🔄 다시 플레이</button>
+                <button class="btn btn-secondary" onclick="window.close()">🏠 나가기</button>
             </div>
         </div>
     </div>
@@ -676,6 +465,6 @@
     <script src="/sdk/sensor-game-sdk.js"></script>
     
     <!-- 게임 스크립트 -->
-    <script src="game-redesigned.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
