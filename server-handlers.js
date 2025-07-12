@@ -28,16 +28,16 @@ function initializeHandlers(clientsMap, sessionsMap, roomsMap) {
 // ========== 세션 관리 핸들러 ==========
 
 /**
- * 세션 생성 (듀얼/멀티플레이어 게임용)
+ * 세션 생성 (모든 게임 타입 지원)
  */
 function handleCreateSession(clientId, message) {
     const client = clients.get(clientId);
     if (!client) return;
     
     try {
-        const { gameType } = message; // 'dual' or 'multiplayer'
+        const { gameType } = message; // 'solo', 'dual' or 'multiplayer'
         
-        if (!['dual', 'multiplayer'].includes(gameType)) {
+        if (!['solo', 'dual', 'multiplayer'].includes(gameType)) {
             client.send({
                 type: MESSAGE_TYPES.ERROR,
                 error: '지원하지 않는 게임 타입'
@@ -365,8 +365,41 @@ function handleStartGame(clientId, message) {
             return;
         }
         
+        // 솔로 게임 시작
+        if (session.gameType === 'solo') {
+            if (session.sensorClients.size === 0) {
+                client.send({
+                    type: MESSAGE_TYPES.ERROR,
+                    error: '센서가 연결되어야 함'
+                });
+                return;
+            }
+            
+            session.state = SESSION_STATES.PLAYING;
+            
+            // 모든 클라이언트에 게임 시작 알림
+            const gameMessage = {
+                type: MESSAGE_TYPES.GAME_STARTED,
+                gameType: 'solo',
+                sessionCode: session.sessionCode,
+                sensorCount: session.sensorClients.size
+            };
+            
+            client.send(gameMessage);
+            
+            // 센서 클라이언트에게도 알림
+            session.sensorClients.forEach((sensorClientId) => {
+                const sensorClient = clients.get(sensorClientId);
+                if (sensorClient && sensorClient.isConnected()) {
+                    sensorClient.send(gameMessage);
+                }
+            });
+            
+            console.log(`🎮 솔로 게임 시작: ${session.sessionCode}`);
+        }
+        
         // 듀얼 센서 게임 시작
-        if (session.gameType === 'dual') {
+        else if (session.gameType === 'dual') {
             if (!session.isDualSensorReady()) {
                 client.send({
                     type: MESSAGE_TYPES.ERROR,

@@ -217,6 +217,25 @@ class DualSensorTestGame extends SensorGameSDK {
     onDualSensorReady(data) {
         console.log('🎮 듀얼 센서 준비 완료:', data);
         this.updateGameStatus('듀얼 센서 준비 완료! 게임을 시작합니다.');
+        
+        // 센서 상태 업데이트
+        this.sensorConnections.sensor1 = true;
+        this.sensorConnections.sensor2 = true;
+        this.updateSensorStatus('sensor1', true);
+        this.updateSensorStatus('sensor2', true);
+        
+        // 게임 시작 요청
+        setTimeout(() => {
+            this.startGameSession();
+        }, 1000);
+    }
+    
+    /**
+     * 게임 시작됨
+     */
+    onGameStart(message) {
+        console.log('🎮 듀얼 센서 게임 시작!', message);
+        this.updateGameStatus('게임 진행 중!');
         this.startGame();
     }
     
@@ -902,10 +921,23 @@ class DualSensorTestGame extends SensorGameSDK {
      */
     createSession() {
         try {
-            super.createSession();
+            // 듀얼 게임용 세션 생성
+            this.createGameSession('dual');
         } catch (error) {
             console.error('❌ 세션 생성 실패:', error);
             this.updateGameStatus('세션 생성 실패');
+        }
+    }
+    
+    /**
+     * 게임 시작 (듀얼 센서 준비 완료 후)
+     */
+    startGameSession() {
+        try {
+            super.startGameSession();
+        } catch (error) {
+            console.error('❌ 게임 시작 실패:', error);
+            this.updateGameStatus('게임 시작 실패');
         }
     }
     

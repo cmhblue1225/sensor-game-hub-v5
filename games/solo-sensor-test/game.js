@@ -170,8 +170,12 @@ class SoloSensorTestGame extends SensorGameSDK {
     onSensorConnected(data) {
         console.log('📱 센서 연결됨');
         this.updateSensorStatus(true);
-        this.updateGameStatus('게임 시작!');
-        this.startGame();
+        this.updateGameStatus('센서 연결됨 - 게임 시작 가능');
+        
+        // 솔로 게임은 센서 연결되면 즉시 게임 시작
+        setTimeout(() => {
+            this.startGameImmediately();
+        }, 1000);
     }
     
     /**
@@ -196,6 +200,14 @@ class SoloSensorTestGame extends SensorGameSDK {
         
         // UI 업데이트
         this.updateSensorDataDisplay(processedData, rawData);
+    }
+    
+    /**
+     * 게임 시작됨
+     */
+    onGameStart(message) {
+        console.log('🎮 게임 시작 메시지 수신:', message);
+        this.updateGameStatus('게임 진행 중!');
     }
     
     /**
@@ -595,10 +607,24 @@ class SoloSensorTestGame extends SensorGameSDK {
      */
     createSession() {
         try {
-            super.createSession();
+            // 솔로 게임용 세션 생성
+            this.createGameSession('solo');
         } catch (error) {
             console.error('세션 생성 실패:', error);
             this.updateGameStatus('세션 생성 실패');
+        }
+    }
+    
+    /**
+     * 게임 즉시 시작 (센서 연결 후)
+     */
+    startGameImmediately() {
+        try {
+            // 센서가 연결되었으므로 즉시 게임 시작
+            this.startGameSession();
+        } catch (error) {
+            console.error('게임 시작 실패:', error);
+            this.updateGameStatus('게임 시작 실패');
         }
     }
     

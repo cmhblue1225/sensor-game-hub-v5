@@ -150,17 +150,14 @@ class MultiSensorTestGame extends SensorGameSDK {
      */
     onRoomCreated(data) {
         console.log('🏠 룸 생성됨:', data.roomId);
-        this.updateGameStatus('룸 생성됨 - 플레이어 대기 중');
+        this.updateGameStatus(`룸 생성됨: ${data.roomId}`);
         this.showLobbyPlayers();
         this.showStartGameButton();
         
-        // 나를 첫 번째 플레이어로 추가
-        this.addPlayer({
-            sessionId: this.state.sessionId,
-            nickname: '호스트',
-            isHost: true,
-            color: this.playerColors[0]
-        });
+        // 룸 상태 업데이트
+        if (data.roomStatus) {
+            this.updateRoomStatus(data.roomStatus);
+        }
     }
     
     /**
@@ -211,6 +208,22 @@ class MultiSensorTestGame extends SensorGameSDK {
     }
     
     /**
+     * 룸 상태 업데이트
+     */
+    onRoomStatusUpdate(roomStatus) {
+        console.log('🏠 룸 상태 업데이트:', roomStatus);
+        this.updateRoomStatus(roomStatus);
+    }
+    
+    /**
+     * 플레이어 센서 연결
+     */
+    onPlayerSensorConnected(data) {
+        console.log('📱 플레이어 센서 연결:', data);
+        this.updateRoomStatus(data.roomStatus);
+    }
+    
+    /**
      * 센서 데이터 수신
      */
     onSensorData(processedData, rawData) {
@@ -257,6 +270,39 @@ class MultiSensorTestGame extends SensorGameSDK {
     // ========== 플레이어 관리 ==========
     
     /**
+     * 룸 상태 업데이트
+     */
+    updateRoomStatus(roomStatus) {
+        if (!roomStatus) return;
+        
+        console.log('🏠 룸 상태 업데이트:', roomStatus);
+        
+        // 플레이어 목록 업데이트
+        this.players.clear();
+        
+        roomStatus.players.forEach(playerData => {
+            this.addPlayer({
+                sessionId: playerData.sessionId,
+                nickname: playerData.nickname,
+                isHost: playerData.isHost,
+                sensorConnected: playerData.sensorConnected,
+                color: this.playerColors[this.players.size % this.playerColors.length]
+            });
+        });
+        
+        // UI 업데이트
+        this.updateLobbyDisplay();
+        this.updateGameStatus(`플레이어 ${roomStatus.playerCount}/${roomStatus.maxPlayers}명 (${roomStatus.state})`);
+        
+        // 게임 시작 버튼 표시/숨김
+        if (roomStatus.canStart && roomStatus.hostSessionId === this.state.sessionId) {
+            this.showStartGameButton();
+        } else {
+            this.hideStartGameButton();
+        }
+    }
+    
+    /**
      * 플레이어 추가
      */
     addPlayer(playerData) {
@@ -265,6 +311,7 @@ class MultiSensorTestGame extends SensorGameSDK {
             nickname: playerData.nickname,
             isHost: playerData.isHost,
             color: playerData.color,
+            sensorConnected: playerData.sensorConnected || false,
             score: 0,
             x: window.innerWidth / 2 + (Math.random() - 0.5) * 200,
             y: window.innerHeight / 2 + (Math.random() - 0.5) * 200,
@@ -916,7 +963,8 @@ class MultiSensorTestGame extends SensorGameSDK {
      */
     createSession() {
         try {
-            super.createSession();
+            // 멀티플레이어 게임용 세션 생성
+            this.createGameSession('multiplayer');
         } catch (error) {
             console.error('세션 생성 실패:', error);
             this.updateGameStatus('세션 생성 실패');

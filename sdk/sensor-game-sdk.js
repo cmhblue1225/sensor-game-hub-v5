@@ -306,6 +306,9 @@ class SensorGameSDK {
             case 'session_matched':
                 this.handleSessionMatched(message);
                 break;
+            case 'dual_sensor_ready':
+                this.handleDualSensorReady(message);
+                break;
             case 'sensor_data':
                 this.handleSensorData(message);
                 break;
@@ -320,6 +323,12 @@ class SensorGameSDK {
                 break;
             case 'player_left':
                 this.handlePlayerLeft(message);
+                break;
+            case 'room_status_update':
+                this.handleRoomStatusUpdate(message);
+                break;
+            case 'player_sensor_connected':
+                this.handlePlayerSensorConnected(message);
                 break;
             case 'game_started':
                 this.handleGameStarted(message);
@@ -390,6 +399,19 @@ class SensorGameSDK {
     }
     
     /**
+     * 듀얼 센서 준비 완료 처리
+     */
+    handleDualSensorReady(message) {
+        console.log('🎮 듀얼 센서 준비 완료:', message);
+        this.emit('dual_sensor_ready', message);
+        
+        // 게임별 듀얼 센서 준비 콜백
+        if (typeof this.onDualSensorReady === 'function') {
+            this.onDualSensorReady(message);
+        }
+    }
+    
+    /**
      * 센서 데이터 처리
      */
     handleSensorData(message) {
@@ -405,7 +427,7 @@ class SensorGameSDK {
         
         // 게임별 센서 데이터 콜백
         if (typeof this.onSensorData === 'function') {
-            this.onSensorData(this.state.processedSensorData, this.state.sensorData);
+            this.onSensorData(this.state.processedSensorData, this.state.sensorData, message.sensorId);
         }
         
         this.emit('sensor_data', {
@@ -470,16 +492,45 @@ class SensorGameSDK {
     }
     
     /**
+     * 룸 상태 업데이트 처리
+     */
+    handleRoomStatusUpdate(message) {
+        console.log('🏠 룸 상태 업데이트:', message.roomStatus);
+        this.emit('room_status_update', message.roomStatus);
+        
+        if (typeof this.onRoomStatusUpdate === 'function') {
+            this.onRoomStatusUpdate(message.roomStatus);
+        }
+    }
+    
+    /**
+     * 플레이어 센서 연결 처리
+     */
+    handlePlayerSensorConnected(message) {
+        console.log('📱 플레이어 센서 연결:', message);
+        this.emit('player_sensor_connected', message);
+        
+        if (typeof this.onPlayerSensorConnected === 'function') {
+            this.onPlayerSensorConnected(message);
+        }
+    }
+    
+    /**
      * 게임 시작 처리
      */
     handleGameStarted(message) {
         this.state.gameStatus = 'playing';
         
-        console.log('🎮 게임 시작!');
+        console.log('🎮 게임 시작!', message.gameType);
         this.emit('game_started', message);
         
         if (typeof this.onGameStart === 'function') {
             this.onGameStart(message);
+        }
+        
+        // 솔로 게임의 경우 즉시 게임 루프 시작
+        if (message.gameType === 'solo' && typeof this.startGame === 'function') {
+            this.startGame();
         }
     }
     
@@ -543,7 +594,34 @@ class SensorGameSDK {
         
         this.send({
             type: 'create_session',
-            gameMode: this.config.gameType
+            gameType: this.config.gameType
+        });
+    }
+    
+    /**
+     * 게임 타입별 세션 생성
+     */
+    createGameSession(gameType) {
+        if (!this.state.isConnected) {
+            throw new Error('서버에 연결되지 않음');
+        }
+        
+        this.send({
+            type: 'create_session',
+            gameType: gameType
+        });
+    }
+    
+    /**
+     * 게임 시작 요청
+     */
+    startGameSession() {
+        if (!this.state.sessionCode) {
+            throw new Error('세션이 생성되지 않음');
+        }
+        
+        this.send({
+            type: 'start_game'
         });
     }
     
