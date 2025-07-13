@@ -83,6 +83,95 @@ class DualSensorTestGameV6 {
     }
     
     /**
+     * 게임 진입시 즉시 세션 생성
+     */
+    createGameSession() {
+        console.log('🎮 게임 세션 생성 중...');
+        
+        // 세션 생성 UI 표시
+        this.showSessionCreationUI();
+        
+        // SDK를 통해 세션 생성
+        this.sdk.createSession('dual')
+            .then(sessionCode => {
+                console.log(`✅ 게임 세션 생성 완료: ${sessionCode}`);
+                this.displaySessionInfo(sessionCode);
+            })
+            .catch(error => {
+                console.error('❌ 세션 생성 실패:', error);
+                this.showError('세션 생성에 실패했습니다. 페이지를 새로고침해주세요.');
+            });
+    }
+    
+    /**
+     * 세션 정보 UI 표시
+     */
+    displaySessionInfo(sessionCode) {
+        const sessionPanel = document.getElementById('sessionInfoPanel');
+        const sessionCodeDisplay = document.getElementById('sessionCodeDisplay');
+        const qrContainer = document.getElementById('qrCodeContainer');
+        
+        // 세션 코드 표시
+        sessionCodeDisplay.textContent = sessionCode;
+        
+        // QR 코드 생성
+        const sensorUrl = `${window.location.origin}/client/sensor-v6.html?session=${sessionCode}`;
+        if (typeof QRCode !== 'undefined') {
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: sensorUrl,
+                width: 120,
+                height: 120,
+                colorDark: '#3b82f6',
+                colorLight: '#ffffff'
+            });
+        }
+        
+        // 세션 패널 표시
+        sessionPanel.classList.remove('hidden');
+        
+        // 대기 메시지 업데이트
+        this.updateGameStatus('센서 연결 대기 중... 위 코드를 모바일에서 입력하세요');
+    }
+    
+    /**
+     * 세션 생성 UI 표시
+     */
+    showSessionCreationUI() {
+        this.updateGameStatus('게임 세션 생성 중...');
+        const waitingPanel = document.getElementById('waitingPanel');
+        if (waitingPanel) {
+            waitingPanel.classList.remove('hidden');
+        }
+    }
+    
+    /**
+     * 게임 상태 메시지 업데이트
+     */
+    updateGameStatus(message) {
+        const statusText = document.getElementById('gameStatusText');
+        if (statusText) {
+            statusText.textContent = message;
+        }
+    }
+    
+    /**
+     * 에러 메시지 표시
+     */
+    showError(message) {
+        const errorPanel = document.createElement('div');
+        errorPanel.className = 'error-panel';
+        errorPanel.innerHTML = `
+            <div class="error-content">
+                <h3>⚠️ 오류</h3>
+                <p>${message}</p>
+                <button onclick="location.reload()" class="btn btn-primary">새로고침</button>
+            </div>
+        `;
+        document.body.appendChild(errorPanel);
+    }
+    
+    /**
      * 게임 초기화
      */
     initializeGame() {
@@ -96,6 +185,9 @@ class DualSensorTestGameV6 {
         if (typeof SessionNavigationManager !== 'undefined') {
             this.navigationManager = new SessionNavigationManager(this.sdk);
         }
+        
+        // 게임 진입시 즉시 세션 생성
+        this.createGameSession();
         
         // 초기 UI 상태
         this.updateGameStatus('SDK 연결 중...');
@@ -257,15 +349,19 @@ class DualSensorTestGameV6 {
     onSensorConnected(data) {
         const sensorId = data.sensorId;
         
+        console.log('📱 센서 연결됨:', data);
+        
         // 센서 ID에 따라 연결 상태 업데이트
         if (sensorId === 'sensor1' || data.connectedCount === 1) {
             this.sensorConnections.sensor1 = true;
             this.updateSensorStatus('sensor1', true);
             this.balls.sensor1.isActive = true;
+            console.log('✅ 센서 1 연결됨');
         } else if (sensorId === 'sensor2' || data.connectedCount === 2) {
             this.sensorConnections.sensor2 = true;
             this.updateSensorStatus('sensor2', true);
             this.balls.sensor2.isActive = true;
+            console.log('✅ 센서 2 연결됨');
         }
         
         console.log('센서 연결 상태:', this.sensorConnections);
@@ -273,14 +369,100 @@ class DualSensorTestGameV6 {
         // 연결된 센서 수에 따라 상태 업데이트
         if (data.connectedCount === 1) {
             this.updateGameStatus('센서 1 연결됨 - 센서 2 연결 대기');
+            this.hideSessionInfo(); // 세션 정보 숨기기
         } else if (data.connectedCount >= 2 || data.isReady) {
-            this.updateGameStatus('모든 센서 연결됨 - 게임 준비 완료');
+            this.updateGameStatus('모든 센서 연결됨 - 게임 시작!');
+            this.hideSessionInfo(); // 세션 정보 완전 숨기기
             
-            // 듀얼 센서 게임은 모든 센서가 연결되면 즉시 게임 시작
-            setTimeout(() => {
-                this.startGameSession();
-            }, 1000);
+            // 모든 센서 연결되면 즉시 게임 시작
+            console.log('🎮 듀얼 센서 게임 시작!');
+            this.startDualSensorGame();
         }
+    }
+    
+    /**
+     * 세션 정보 숨기기
+     */
+    hideSessionInfo() {
+        const sessionPanel = document.getElementById('sessionInfoPanel');
+        const waitingPanel = document.getElementById('waitingPanel');
+        
+        if (sessionPanel) {
+            sessionPanel.classList.add('hidden');
+        }
+        if (waitingPanel) {
+            waitingPanel.classList.add('hidden');
+        }
+    }
+    
+    /**
+     * 듀얼 센서 게임 시작
+     */
+    startDualSensorGame() {
+        console.log('🎮 듀얼 센서 게임 시작!');
+        
+        // 게임 상태 변경
+        this.isGameRunning = true;
+        
+        // UI 업데이트
+        this.updateGameStatus('게임 진행 중...');
+        
+        // 공 위치 초기화
+        this.resetBallPositions();
+        
+        // 게임 루프 시작
+        if (!this.gameLoop) {
+            this.startGameLoop();
+        }
+        
+        // 미션 UI 표시
+        this.showGameUI();
+        
+        // 게임 시작 이벤트 전송
+        this.sdk.sendGameEvent({
+            type: 'dual_game_started',
+            timestamp: Date.now()
+        });
+    }
+    
+    /**
+     * 공 위치 초기화
+     */
+    resetBallPositions() {
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        // 센서 1 공 (왼쪽)
+        this.balls.sensor1.x = centerX - 100;
+        this.balls.sensor1.y = centerY;
+        this.balls.sensor1.vx = 0;
+        this.balls.sensor1.vy = 0;
+        this.balls.sensor1.trail = [];
+        
+        // 센서 2 공 (오른쪽)
+        this.balls.sensor2.x = centerX + 100;
+        this.balls.sensor2.y = centerY;
+        this.balls.sensor2.vx = 0;
+        this.balls.sensor2.vy = 0;
+        this.balls.sensor2.trail = [];
+    }
+    
+    /**
+     * 게임 UI 표시
+     */
+    showGameUI() {
+        const gameUI = document.getElementById('gameUI');
+        const missionPanel = document.getElementById('missionPanel');
+        
+        if (gameUI) {
+            gameUI.classList.remove('hidden');
+        }
+        if (missionPanel) {
+            missionPanel.classList.remove('hidden');
+        }
+        
+        // 점수 초기화
+        this.updateScoreDisplay();
     }
     
     /**
@@ -894,9 +1076,22 @@ class DualSensorTestGameV6 {
      * 센서 상태 업데이트
      */
     updateSensorStatus(sensorId, connected) {
-        const element = document.getElementById(`${sensorId}Status`);
-        if (element) {
-            element.classList.toggle('connected', connected);
+        // 기존 상태 표시 업데이트
+        const statusElement = document.getElementById(`${sensorId}Status`);
+        if (statusElement) {
+            statusElement.classList.toggle('connected', connected);
+        }
+        
+        // 새로운 연결 상태 표시 업데이트
+        const connectionElement = document.getElementById(`${sensorId}Connection`);
+        if (connectionElement) {
+            if (connected) {
+                connectionElement.textContent = '연결됨';
+                connectionElement.style.background = 'var(--success)';
+            } else {
+                connectionElement.textContent = '대기중';
+                connectionElement.style.background = 'var(--error)';
+            }
         }
     }
     

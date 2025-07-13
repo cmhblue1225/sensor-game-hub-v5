@@ -71,11 +71,93 @@ class SoloSensorTestGameV6 {
             this.navigationManager = new SessionNavigationManager(this.sdk);
         }
         
+        // 게임 진입시 즉시 세션 생성
+        this.createGameSession();
+        
         // 초기 UI 상태
         this.updateGameStatus('SDK 연결 중...');
         
         // SDK 연결 시작
         this.connectToServer();
+    }
+    
+    /**
+     * 게임 진입시 즉시 세션 생성
+     */
+    createGameSession() {
+        console.log('🎯 솔로 게임 세션 생성 중...');
+        
+        // 세션 생성 UI 표시
+        this.showSessionCreationUI();
+        
+        // SDK를 통해 세션 생성
+        this.sdk.createSession('solo')
+            .then(sessionCode => {
+                console.log(`✅ 솔로 게임 세션 생성 완료: ${sessionCode}`);
+                this.displaySessionInfo(sessionCode);
+            })
+            .catch(error => {
+                console.error('❌ 세션 생성 실패:', error);
+                this.showError('세션 생성에 실패했습니다. 페이지를 새로고침해주세요.');
+            });
+    }
+    
+    /**
+     * 세션 정보 UI 표시
+     */
+    displaySessionInfo(sessionCode) {
+        const sessionPanel = document.getElementById('sessionInfoPanel');
+        const sessionCodeDisplay = document.getElementById('sessionCodeDisplay');
+        const qrContainer = document.getElementById('qrCodeContainer');
+        
+        // 세션 코드 표시
+        sessionCodeDisplay.textContent = sessionCode;
+        
+        // QR 코드 생성
+        const sensorUrl = `${window.location.origin}/client/sensor-v6.html?session=${sessionCode}`;
+        if (typeof QRCode !== 'undefined') {
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: sensorUrl,
+                width: 120,
+                height: 120,
+                colorDark: '#3b82f6',
+                colorLight: '#ffffff'
+            });
+        }
+        
+        // 세션 패널 표시
+        sessionPanel.classList.remove('hidden');
+        
+        // 대기 메시지 업데이트
+        this.updateGameStatus('센서 연결 대기 중... 위 코드를 모바일에서 입력하세요');
+    }
+    
+    /**
+     * 세션 생성 UI 표시
+     */
+    showSessionCreationUI() {
+        this.updateGameStatus('게임 세션 생성 중...');
+        const waitingPanel = document.getElementById('waitingPanel');
+        if (waitingPanel) {
+            waitingPanel.classList.remove('hidden');
+        }
+    }
+    
+    /**
+     * 에러 메시지 표시
+     */
+    showError(message) {
+        const errorPanel = document.createElement('div');
+        errorPanel.className = 'error-panel';
+        errorPanel.innerHTML = `
+            <div class="error-content">
+                <h3>⚠️ 오류</h3>
+                <p>${message}</p>
+                <button onclick="location.reload()" class="btn btn-primary">새로고침</button>
+            </div>
+        `;
+        document.body.appendChild(errorPanel);
     }
     
     /**
@@ -222,15 +304,94 @@ class SoloSensorTestGameV6 {
      * 센서 연결됨
      */
     onSensorConnected(data) {
+        console.log('📱 센서 연결됨:', data);
+        
         this.updateSensorStatus(true);
-        this.updateGameStatus('센서 연결됨 - 게임 준비 완료');
+        this.updateGameStatus('센서 연결됨 - 게임 시작!');
+        
+        // 세션 정보 숨기기
+        this.hideSessionInfo();
         
         // 솔로 게임은 센서 연결되면 즉시 게임 시작
-        if (data.isReady) {
-            setTimeout(() => {
-                this.startGameSession();
-            }, 1000);
+        console.log('🎯 솔로 센서 게임 시작!');
+        this.startSoloGame();
+    }
+    
+    /**
+     * 세션 정보 숨기기
+     */
+    hideSessionInfo() {
+        const sessionPanel = document.getElementById('sessionInfoPanel');
+        const waitingPanel = document.getElementById('waitingPanel');
+        
+        if (sessionPanel) {
+            sessionPanel.classList.add('hidden');
         }
+        if (waitingPanel) {
+            waitingPanel.classList.add('hidden');
+        }
+    }
+    
+    /**
+     * 솔로 센서 게임 시작
+     */
+    startSoloGame() {
+        console.log('🎯 솔로 센서 게임 시작!');
+        
+        // 게임 상태 변경
+        this.isGameRunning = true;
+        
+        // UI 업데이트
+        this.updateGameStatus('게임 진행 중...');
+        
+        // 공 위치 초기화
+        this.resetBallPosition();
+        
+        // 게임 루프 시작
+        if (!this.gameLoop) {
+            this.startGameLoop();
+        }
+        
+        // 게임 UI 표시
+        this.showGameUI();
+        
+        // 게임 시작 이벤트 전송
+        this.sdk.sendGameEvent({
+            type: 'solo_game_started',
+            timestamp: Date.now()
+        });
+    }
+    
+    /**
+     * 공 위치 초기화
+     */
+    resetBallPosition() {
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        this.ball.x = centerX;
+        this.ball.y = centerY;
+        this.ball.vx = 0;
+        this.ball.vy = 0;
+        this.ball.trail = [];
+    }
+    
+    /**
+     * 게임 UI 표시
+     */
+    showGameUI() {
+        const gameUI = document.getElementById('gameUI');
+        const scorePanel = document.getElementById('scorePanel');
+        
+        if (gameUI) {
+            gameUI.classList.remove('hidden');
+        }
+        if (scorePanel) {
+            scorePanel.classList.remove('hidden');
+        }
+        
+        // 점수 초기화
+        this.updateScoreDisplay();
     }
     
     /**

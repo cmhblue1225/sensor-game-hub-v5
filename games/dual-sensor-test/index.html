@@ -412,6 +412,7 @@
                 </div>
                 <div class="status-indicator" id="serverStatus"></div>
             </div>
+            <div class="game-status-text" id="gameStatusText">세션 생성 중...</div>
         </div>
         
         <!-- 점수 패널 -->
@@ -432,8 +433,8 @@
             </div>
         </div>
         
-        <!-- 인스트럭션 패널 -->
-        <div class="ui-panel instruction-panel" id="instructionPanel">
+        <!-- 게임 대기 패널 -->
+        <div class="ui-panel instruction-panel" id="waitingPanel">
             <div class="instruction-title">🎮 듀얼 센서 테스트</div>
             <div class="instruction-text">
                 두 개의 센서를 동시에 사용하여 협조 플레이를 즐기세요!<br>
@@ -455,11 +456,34 @@
             </div>
             
             <!-- 세션 정보 표시 -->
-            <div id="sessionInfo" class="hidden" style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); border-radius: 0.5rem;">
-                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">📱 모바일 센서 연결</div>
-                <div style="font-size: 1.2rem; font-weight: 700; font-family: 'Courier New', monospace; margin-bottom: 0.5rem;" id="sessionCode">-</div>
-                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">이 코드를 두 모바일에서 입력하세요</div>
-                <div id="qrCodeContainer" style="text-align: center;"></div>
+            <div id="sessionInfoPanel" class="hidden session-info-panel" style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); border-radius: 0.75rem; text-align: center;">
+                <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary);">📱 센서 연결</div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">세션 코드</div>
+                    <div style="font-size: 2rem; font-weight: 700; font-family: 'Courier New', monospace; margin-bottom: 0.5rem; color: var(--primary);" id="sessionCodeDisplay">-</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">이 코드를 두 모바일에서 입력하세요</div>
+                </div>
+                
+                <div id="qrCodeContainer" style="margin: 1.5rem 0;"></div>
+                
+                <div style="background: rgba(30, 41, 59, 0.5); border-radius: 0.5rem; padding: 1rem; margin-top: 1rem;">
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-primary);">센서 연결 상태</div>
+                    <div style="display: flex; justify-content: space-between; gap: 1rem;">
+                        <div style="flex: 1; text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">센서 1 (파란색)</div>
+                            <div id="sensor1Connection" style="padding: 0.5rem; border-radius: 0.25rem; background: var(--error); color: white; font-size: 0.8rem;">대기중</div>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">센서 2 (빨간색)</div>
+                            <div id="sensor2Connection" style="padding: 0.5rem; border-radius: 0.25rem; background: var(--error); color: white; font-size: 0.8rem;">대기중</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); border-radius: 0.5rem;">
+                    <div style="font-size: 0.85rem; color: var(--success);">💡 센서 클라이언트에서 위 코드를 입력하거나 QR코드를 스캔하세요</div>
+                </div>
             </div>
         </div>
         

@@ -99,11 +99,93 @@ class MultiplayerSensorTestGameV6 {
             this.navigationManager = new SessionNavigationManager(this.sdk);
         }
         
+        // 게임 진입시 즉시 세션 생성
+        this.createGameSession();
+        
         // 초기 UI 상태
         this.updateGameStatus('SDK 연결 중...');
         
         // SDK 연결 시작
         this.connectToServer();
+    }
+    
+    /**
+     * 게임 진입시 즉시 세션 생성
+     */
+    createGameSession() {
+        console.log('👥 멀티플레이어 게임 세션 생성 중...');
+        
+        // 세션 생성 UI 표시
+        this.showSessionCreationUI();
+        
+        // SDK를 통해 세션 생성 (멀티플레이어는 룸 생성)
+        this.sdk.createSession('multiplayer')
+            .then(sessionCode => {
+                console.log(`✅ 멀티플레이어 게임 세션 생성 완료: ${sessionCode}`);
+                this.displaySessionInfo(sessionCode);
+            })
+            .catch(error => {
+                console.error('❌ 세션 생성 실패:', error);
+                this.showError('세션 생성에 실패했습니다. 페이지를 새로고침해주세요.');
+            });
+    }
+    
+    /**
+     * 세션 정보 UI 표시
+     */
+    displaySessionInfo(sessionCode) {
+        const sessionPanel = document.getElementById('sessionInfoPanel');
+        const sessionCodeDisplay = document.getElementById('sessionCodeDisplay');
+        const qrContainer = document.getElementById('qrCodeContainer');
+        
+        // 세션 코드 표시
+        sessionCodeDisplay.textContent = sessionCode;
+        
+        // QR 코드 생성
+        const sensorUrl = `${window.location.origin}/client/sensor-v6.html?session=${sessionCode}`;
+        if (typeof QRCode !== 'undefined') {
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: sensorUrl,
+                width: 120,
+                height: 120,
+                colorDark: '#3b82f6',
+                colorLight: '#ffffff'
+            });
+        }
+        
+        // 세션 패널 표시
+        sessionPanel.classList.remove('hidden');
+        
+        // 대기 메시지 업데이트
+        this.updateGameStatus('센서 연결 대기 중... 위 코드를 모바일에서 입력하세요');
+    }
+    
+    /**
+     * 세션 생성 UI 표시
+     */
+    showSessionCreationUI() {
+        this.updateGameStatus('게임 세션 생성 중...');
+        const waitingPanel = document.getElementById('waitingPanel');
+        if (waitingPanel) {
+            waitingPanel.classList.remove('hidden');
+        }
+    }
+    
+    /**
+     * 에러 메시지 표시
+     */
+    showError(message) {
+        const errorPanel = document.createElement('div');
+        errorPanel.className = 'error-panel';
+        errorPanel.innerHTML = `
+            <div class="error-content">
+                <h3>⚠️ 오류</h3>
+                <p>${message}</p>
+                <button onclick="location.reload()" class="btn btn-primary">새로고침</button>
+            </div>
+        `;
+        document.body.appendChild(errorPanel);
     }
     
     /**
