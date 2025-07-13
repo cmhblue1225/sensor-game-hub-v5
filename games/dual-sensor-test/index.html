@@ -428,7 +428,7 @@
         <div class="ui-panel control-panel">
             <div class="btn-group">
                 <button class="btn btn-secondary" onclick="game.reset()" id="resetBtn">🔄 리셋</button>
-                <button class="btn btn-primary" onclick="window.close()">🏠 나가기</button>
+                <button class="btn btn-primary" onclick="game.returnToHub()">🏠 허브로</button>
             </div>
         </div>
         
@@ -451,7 +451,15 @@
             </div>
             
             <div class="btn-group">
-                <button class="btn btn-primary" onclick="game.createSession()">세션 생성</button>
+                <button class="btn btn-primary" onclick="game.startGame()">게임 시작</button>
+            </div>
+            
+            <!-- 세션 정보 표시 -->
+            <div id="sessionInfo" class="hidden" style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); border-radius: 0.5rem;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">📱 모바일 센서 연결</div>
+                <div style="font-size: 1.2rem; font-weight: 700; font-family: 'Courier New', monospace; margin-bottom: 0.5rem;" id="sessionCode">-</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">이 코드를 두 모바일에서 입력하세요</div>
+                <div id="qrCodeContainer" style="text-align: center;"></div>
             </div>
         </div>
         
@@ -468,10 +476,15 @@
         </div>
     </div>
     
-    <!-- SDK 로드 -->
-    <script src="/sdk/sensor-game-sdk.js"></script>
+    <!-- v6.0 SDK 로드 -->
+    <script src="../../sdk/core/SessionPersistence.js"></script>
+    <script src="../../sdk/core/SensorGameSDK.js"></script>
+    <script src="../../sdk/core/SessionNavigationManager.js"></script>
+    
+    <!-- QR 코드 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     
     <!-- 게임 스크립트 -->
-    <script src="game.js"></script>
+    <script src="game-v6.js"></script>
 </body>
 </html>

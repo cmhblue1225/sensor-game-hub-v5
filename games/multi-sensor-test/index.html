@@ -616,7 +616,7 @@
             <div class="btn-group">
                 <button class="btn btn-secondary" onclick="game.restartGame()" id="restartBtn">🔄 재시작</button>
                 <button class="btn btn-warning hidden" onclick="game.startGame()" id="startGameBtn">🎮 게임 시작</button>
-                <button class="btn btn-primary" onclick="window.close()">🏠 나가기</button>
+                <button class="btn btn-primary" onclick="game.returnToHub()">🏠 허브로</button>
             </div>
         </div>
         
@@ -640,7 +640,15 @@
             </div>
             
             <div class="btn-group">
-                <button class="btn btn-primary pulse" onclick="game.createSession()" id="createSessionBtn">🚀 세션 생성</button>
+                <button class="btn btn-primary pulse" onclick="game.startGame()" id="createSessionBtn">🚀 게임 시작</button>
+            </div>
+            
+            <!-- 세션 정보 표시 -->
+            <div id="sessionInfo" class="hidden" style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); border-radius: 0.75rem;">
+                <div style="font-weight: 600; margin-bottom: 0.75rem; color: var(--primary); text-align: center;">📱 모바일 센서 연결</div>
+                <div style="font-size: 1.3rem; font-weight: 700; font-family: 'Courier New', monospace; margin-bottom: 0.75rem; text-align: center;" id="sessionCode">-</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; text-align: center;">이 코드를 모바일에서 입력하세요</div>
+                <div id="qrCodeContainer" style="text-align: center;"></div>
             </div>
             
             <div class="lobby-players hidden" id="lobbyPlayers">
@@ -667,15 +675,20 @@
             <div class="btn-group">
                 <button class="btn btn-warning" onclick="game.restartGame()" id="hostRestartBtn">🔄 재시작</button>
                 <button class="btn btn-secondary" onclick="game.returnToLobby()">🏠 대기실</button>
-                <button class="btn btn-primary" onclick="window.close()">✖️ 나가기</button>
+                <button class="btn btn-primary" onclick="game.returnToHub()">✖️ 허브로</button>
             </div>
         </div>
     </div>
     
-    <!-- SDK 로드 -->
-    <script src="/sdk/sensor-game-sdk.js"></script>
+    <!-- v6.0 SDK 로드 -->
+    <script src="../../sdk/core/SessionPersistence.js"></script>
+    <script src="../../sdk/core/SensorGameSDK.js"></script>
+    <script src="../../sdk/core/SessionNavigationManager.js"></script>
+    
+    <!-- QR 코드 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     
     <!-- 게임 스크립트 -->
-    <script src="game-redesigned.js"></script>
+    <script src="game-v6.js"></script>
 </body>
 </html>
